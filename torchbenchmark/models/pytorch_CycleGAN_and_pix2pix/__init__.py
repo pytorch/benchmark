@@ -13,7 +13,6 @@ from torchbenchmark.tasks import COMPUTER_VISION
 
 from ...util.model import BenchmarkModel
 from .test_cyclegan import get_model
-
 from .train_cyclegan import prepare_training_loop
 
 

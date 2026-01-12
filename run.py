@@ -16,7 +16,6 @@ from functools import partial
 import numpy as np
 import torch
 import torch.profiler as profiler
-
 from torchbenchmark.util.experiment.instantiator import (
     load_model,
     TorchBenchModelConfig,
@@ -547,9 +546,9 @@ def main() -> None:
         if "gpu_peak_mem" in metrics_needed or (
             "flops" in metrics_needed and metrics_gpu_backend == "dcgm"
         ):
-            assert (
-                args.device == "cuda"
-            ), "gpu_peak_mem and flops:dcgm are only available for cuda device."
+            assert args.device == "cuda", (
+                "gpu_peak_mem and flops:dcgm are only available for cuda device."
+            )
     if args.export_metrics:
         if not args.metrics:
             print("You have to specifiy at least one metrics to export.")

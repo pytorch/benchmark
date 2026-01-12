@@ -16,7 +16,6 @@ from torchvision import models
 
 from ...util.model import BenchmarkModel
 from .main_moco import adjust_learning_rate
-
 from .moco.builder import MoCo
 
 cudnn.deterministic = False

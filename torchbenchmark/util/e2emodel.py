@@ -31,9 +31,9 @@ class E2EBenchmarkModel(metaclass=PostInitProcessor):
         self, test: str, batch_size: Optional[int] = None, extra_args: List[str] = []
     ):
         self.test = test
-        assert (
-            self.test == "train" or self.test == "eval"
-        ), f"Test must be 'train' or 'eval', but get {self.test}. Please submit a bug report."
+        assert self.test == "train" or self.test == "eval", (
+            f"Test must be 'train' or 'eval', but get {self.test}. Please submit a bug report."
+        )
         self.batch_size = batch_size
         if not self.batch_size:
             self.batch_size = (
@@ -55,9 +55,9 @@ class E2EBenchmarkModel(metaclass=PostInitProcessor):
     # Run the post processing for model acceleration
     def __post__init__(self):
         # sanity checks of the options
-        assert (
-            self.test == "train" or self.test == "eval"
-        ), f"Test must be 'train' or 'eval', but provided {self.test}."
+        assert self.test == "train" or self.test == "eval", (
+            f"Test must be 'train' or 'eval', but provided {self.test}."
+        )
         # initialize run contexts
         self.run_contexts = []
         if self.dynamo:
@@ -67,9 +67,9 @@ class E2EBenchmarkModel(metaclass=PostInitProcessor):
 
     def add_context(self, context_fn):
         ctx = context_fn()
-        assert isinstance(
-            ctx, ContextManager
-        ), f"Expected adding a ContextManager, get {type(ctx)}. Please report a bug."
+        assert isinstance(ctx, ContextManager), (
+            f"Expected adding a ContextManager, get {type(ctx)}. Please report a bug."
+        )
         self.run_contexts.append(context_fn)
 
     def get_optimizer(self):

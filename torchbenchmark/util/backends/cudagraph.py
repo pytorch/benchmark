@@ -11,13 +11,13 @@ def cudagraph(
     model: "torchbenchmark.util.model.BenchmarkModel", backend_args: List[str]
 ):
     cudagraph_func_name = f"cudagraph_{model.test}"
-    assert hasattr(
-        model, cudagraph_func_name
-    ), f"CUDA Graph only works on models implement {cudagraph_func_name}()"
+    assert hasattr(model, cudagraph_func_name), (
+        f"CUDA Graph only works on models implement {cudagraph_func_name}()"
+    )
     if model.test == "train":
-        assert hasattr(
-            model, "SKIP_ZERO_GRAD"
-        ), f"The model must support skipping zero grad in its train test."
+        assert hasattr(model, "SKIP_ZERO_GRAD"), (
+            f"The model must support skipping zero grad in its train test."
+        )
 
     def _cudagraph():
         # CUDAGraph can't be copied/pickled, disable copying in correctness checking

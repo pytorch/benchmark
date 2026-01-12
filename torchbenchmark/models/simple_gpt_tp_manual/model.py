@@ -213,15 +213,15 @@ class LLaMA(nn.Module):
         if max_seq_length is None:
             max_seq_length = block_size
 
-        assert (
-            T <= max_seq_length
-        ), f"Cannot forward sequence of length {T}, max seq length is only {max_seq_length}"
-        assert (
-            max_seq_length <= block_size
-        ), f"Cannot attend to {max_seq_length}, block size is only {block_size}"
-        assert (
-            T <= block_size
-        ), f"Cannot forward sequence of length {T}, block size is only {block_size}"
+        assert T <= max_seq_length, (
+            f"Cannot forward sequence of length {T}, max seq length is only {max_seq_length}"
+        )
+        assert max_seq_length <= block_size, (
+            f"Cannot attend to {max_seq_length}, block size is only {block_size}"
+        )
+        assert T <= block_size, (
+            f"Cannot forward sequence of length {T}, block size is only {block_size}"
+        )
 
         rope = self.rope_cache.index_select(0, input_pos)
         mask = self.mask_cache.index_select(2, input_pos)

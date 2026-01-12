@@ -6,12 +6,10 @@ import time
 import torch
 from data_utils import TextMelCollate, TextMelLoader
 from distributed import DistributedDataParallel
-
 from fp16_optimizer import FP16_Optimizer
 from hparams import create_hparams
 from logger import Tacotron2Logger
 from loss_function import Tacotron2Loss
-
 from model import Tacotron2
 from numpy import finfo
 from torch.nn import DataParallel

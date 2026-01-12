@@ -33,9 +33,9 @@ class SegmentTree:
             mathematical group together with the set of possible values for array elements (i.e. be associative)
         :param neutral_element: (Any) neutral element for the operation above. eg. float('-inf') for max and 0 for sum.
         """
-        assert (
-            capacity > 0 and capacity & (capacity - 1) == 0
-        ), "capacity must be positive and a power of 2."
+        assert capacity > 0 and capacity & (capacity - 1) == 0, (
+            "capacity must be positive and a power of 2."
+        )
         self._capacity = capacity
         self._value = [neutral_element for _ in range(2 * capacity)]
         self._operation = operation
@@ -322,9 +322,9 @@ class ReplayBuffer:
         return self._storage.get_all_transitions()
 
     def load_experience(self, s, a, r, s1, d):
-        assert (
-            s.shape[0] <= self._maxsize
-        ), "Experience dataset is larger than the buffer."
+        assert s.shape[0] <= self._maxsize, (
+            "Experience dataset is larger than the buffer."
+        )
         if len(r.shape) < 2:
             r = np.expand_dims(r, 1)
         if len(d.shape) < 2:

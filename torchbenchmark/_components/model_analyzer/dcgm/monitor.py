@@ -110,8 +110,7 @@ class Monitor(ABC):
 
         if not self._thread_active:
             raise TorchBenchAnalyzerException(
-                "start_recording_metrics should be "
-                "called before stop_recording_metrics"
+                "start_recording_metrics should be called before stop_recording_metrics"
             )
 
         self._thread_active = False

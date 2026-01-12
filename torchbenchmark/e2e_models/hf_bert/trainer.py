@@ -9,7 +9,6 @@ from torchbenchmark.tasks import NLP
 from torchbenchmark.util.framework.transformers.text_classification.args import (
     parse_args,
 )
-
 from torchbenchmark.util.framework.transformers.text_classification.dataset import (
     prep_dataset,
     prep_labels,

@@ -57,13 +57,13 @@ def check_precision(
         if model.test == "train" and model.device == "cpu":
             return hasattr(model, "enable_amp") or is_staged_train_test(model)
     if precision == "fp8":
-        assert (
-            "fp8" in model.name
-        ), f"We expect fp8 exist in the model/operator name to explicitly claim fp8 is used, name: {model.name}."
+        assert "fp8" in model.name, (
+            f"We expect fp8 exist in the model/operator name to explicitly claim fp8 is used, name: {model.name}."
+        )
         return True
-    assert (
-        precision == "fp32"
-    ), f"Expected precision to be one of {AVAILABLE_PRECISIONS}, but get {precision}"
+    assert precision == "fp32", (
+        f"Expected precision to be one of {AVAILABLE_PRECISIONS}, but get {precision}"
+    )
     return True
 
 
@@ -188,9 +188,9 @@ def apply_decoration_args(
     elif dargs.precision == "amp":
         model.enable_amp()
     elif dargs.precision == "fx_int8":
-        assert (
-            model.device == "cpu" and model.test == "eval"
-        ), f"fx_int8 only work for eval mode on cpu device."
+        assert model.device == "cpu" and model.test == "eval", (
+            f"fx_int8 only work for eval mode on cpu device."
+        )
         model.enable_fx_int8(dargs.quant_engine)
     elif dargs.precision == "amp_fp16":
         assert model.device == "cuda", f"{model.device} has no fp16 autocast."
@@ -239,9 +239,9 @@ def apply_decoration_args(
     elif dargs.precision == "fp8":
         pass
     elif not dargs.precision == "fp32":
-        assert (
-            False
-        ), f"Get an invalid precision option: {dargs.precision}. Please report a bug."
+        assert False, (
+            f"Get an invalid precision option: {dargs.precision}. Please report a bug."
+        )
 
 
 # Dispatch arguments based on model type

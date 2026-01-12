@@ -1,6 +1,5 @@
 import argparse
 import os
-
 from typing import List, Tuple
 
 import torch
@@ -27,9 +26,9 @@ def parse_ait_args(args: List[str]) -> Tuple[argparse.Namespace, List[str]]:
 @create_backend
 def fx2ait(model: "torchbenchmark.util.model.BenchmarkModel", backend_args: List[str]):
     AIT_WORK_PATH = os.path.join("/tmp", ".torchbench", "ait")
-    assert (
-        model.dargs.precision == "fp16"
-    ), f"AITemplate only support float16 precision, but get {model.dargs.precision}"
+    assert model.dargs.precision == "fp16", (
+        f"AITemplate only support float16 precision, but get {model.dargs.precision}"
+    )
     OSS_AITModel = False
     try:
         # Load Non-OSS

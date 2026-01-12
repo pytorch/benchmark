@@ -350,8 +350,8 @@ def parse_args(in_args):
         ], "`validation_file` should be a csv or a json file."
 
     if args.push_to_hub:
-        assert (
-            args.output_dir is not None
-        ), "Need an `output_dir` to create a repo when `--push_to_hub` is passed."
+        assert args.output_dir is not None, (
+            "Need an `output_dir` to create a repo when `--push_to_hub` is passed."
+        )
 
     return args

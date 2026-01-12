@@ -8,7 +8,6 @@ from torchbenchmark import DATA_PATH
 
 from .speech_transformer.data import AudioDataLoader, AudioDataset, build_LFR_features
 from .speech_transformer.transformer import Transformer
-
 from .speech_transformer.transformer.decoder import Decoder
 from .speech_transformer.transformer.encoder import Encoder
 from .speech_transformer.transformer.loss import cal_performance

@@ -4,7 +4,6 @@ from typing import Dict
 from effdet import create_dataset, create_evaluator, create_loader
 from effdet.anchors import AnchorLabeler, Anchors
 from effdet.data import resolve_input_config, SkipSubset
-
 from effdet.data.dataset_config import CocoCfg
 
 

@@ -8,7 +8,6 @@ import os
 import subprocess
 import sys
 import time
-
 from datetime import datetime
 from pathlib import Path
 from typing import List

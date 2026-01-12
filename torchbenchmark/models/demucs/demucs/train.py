@@ -7,7 +7,6 @@
 import sys
 
 import torch
-
 import tqdm
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler

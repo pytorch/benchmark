@@ -208,7 +208,7 @@ def pick_grad(args, name):
 
 def short_name(name, limit=20):
     """Truncate a model name to limit chars"""
-    return name if len(name) <= limit else f"{name[:limit - 3].rstrip('_')}..."
+    return name if len(name) <= limit else f"{name[: limit - 3].rstrip('_')}..."
 
 
 def iter_torchbench_model_names():
@@ -581,9 +581,9 @@ def check_results_impl(correct_result, lazy_result, atol):
             assert k in lazy_result
             return check_results_impl(correct_result[k], lazy_result[k], atol)
 
-    assert (
-        type(correct_result) is torch.Tensor
-    ), f"Expect torch.Tensor but got {type(correct_result)}."
+    assert type(correct_result) is torch.Tensor, (
+        f"Expect torch.Tensor but got {type(correct_result)}."
+    )
     ans = torch.allclose(correct_result, lazy_result, atol=atol)
     if not ans:
         print(f"correct_result:\n{correct_result}, lazy_result:\n{lazy_result}")
@@ -606,9 +606,9 @@ def check_fuser(args):
     if args.device == "cpu":
         assert args.fuser in ["fuser0", "fuser1"]
         if args.fuser == "fuser1":
-            assert (
-                torch._C._llvm_enabled()
-            ), "Can't use fuser1 (nnc) for CPU without building torch with llvm."
+            assert torch._C._llvm_enabled(), (
+                "Can't use fuser1 (nnc) for CPU without building torch with llvm."
+            )
     if args.device == "cuda":
         assert args.fuser in ["fuser0", "fuser1", "fuser2"]
 
@@ -686,7 +686,7 @@ def merge_reformat(tmp_dir, out_dir, table):
 
             if prefix == "error":
                 entry["error"] = (
-                    f'{entry.get("error", "")}  {get_field(r, "error", prefix)}'
+                    f"{entry.get('error', '')}  {get_field(r, 'error', prefix)}"
                 )
             elif prefix == "lazy-overheads":
                 entry["overhead"] = get_field(r, "overhead", prefix)

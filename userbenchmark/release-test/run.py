@@ -49,12 +49,12 @@ def get_work_dir(output_dir):
 
 
 def generate_test_scripts(config, work_dir):
-    assert "cuda" in config and isinstance(
-        config["cuda"], list
-    ), f"Expected CUDA config list, but not found."
-    assert "pytorch" in config and isinstance(
-        config["pytorch"], list
-    ), f"Exptected pytorch version list, but not found."
+    assert "cuda" in config and isinstance(config["cuda"], list), (
+        f"Expected CUDA config list, but not found."
+    )
+    assert "pytorch" in config and isinstance(config["pytorch"], list), (
+        f"Exptected pytorch version list, but not found."
+    )
     bm_matrix = [config["cuda"], config["pytorch"]]
     run_scripts = {}
     for cuda, pytorch in itertools.product(*bm_matrix):

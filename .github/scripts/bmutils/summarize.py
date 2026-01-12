@@ -52,9 +52,9 @@ def generate_header(result, base_key):
     base_arg = None
     for t in result:
         assert t[1] == test, f"Both {t[1]} and {test} exist in result, can't analyze."
-        assert (
-            t[2] == device
-        ), f"Both {t[2]} and {device} exist in result, can't analyze."
+        assert t[2] == device, (
+            f"Both {t[2]} and {device} exist in result, can't analyze."
+        )
         result_keys = result[t].keys()
         for k in filter(lambda x: not x in ATTRIBUTES, result_keys):
             if k == base_key:
@@ -121,9 +121,9 @@ def analyze_result(result_dir: str, base_key: str) -> str:
     files = get_nonempty_json(result_dir)
     # make sure the baseline file exists
     file_keys = list(map(lambda x: Path(x).stem, files))
-    assert (
-        base_key in file_keys
-    ), f"Baseline key {base_key} is not found in all files: {file_keys}."
+    assert base_key in file_keys, (
+        f"Baseline key {base_key} is not found in all files: {file_keys}."
+    )
     result = {}
     for f in files:
         process_json(result, f, base_key)

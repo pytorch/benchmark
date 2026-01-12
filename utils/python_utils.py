@@ -1,7 +1,6 @@
 import subprocess
 import warnings
 from pathlib import Path
-
 from typing import List, Optional
 
 DEFAULT_PYTHON_VERSION = "3.12"

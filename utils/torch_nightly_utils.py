@@ -12,12 +12,10 @@ import urllib.parse
 from collections import defaultdict
 from datetime import date, timedelta
 from pathlib import Path
-
 from typing import List
 
 import requests
 from bs4 import BeautifulSoup
-
 from cuda_utils import CUDA_VERSION_MAP, DEFAULT_CUDA_VERSION  # @manual
 from python_utils import DEFAULT_PYTHON_VERSION, PYTHON_VERSION_MAP
 
@@ -210,7 +208,9 @@ if __name__ == "__main__":
         wheels = get_most_recent_successful_wheels(
             args.packages, args.pyver, args.platform
         )
-        assert wheels, f"We do not find any successful pytorch nightly build of packages: {args.packages}."
+        assert wheels, (
+            f"We do not find any successful pytorch nightly build of packages: {args.packages}."
+        )
         print(f"Found pytorch nightly wheels: {wheels} ")
         install_wheels(wheels)
         exit(0)

@@ -2,7 +2,6 @@ import logging
 import os
 from contextlib import suppress
 from pathlib import Path
-
 from typing import Tuple
 
 import torch
@@ -16,7 +15,6 @@ from timm.models.layers import set_layer_config
 from timm.optim import create_optimizer
 from timm.scheduler import create_scheduler
 from timm.utils import ModelEmaV2, NativeScaler
-
 from torch.utils._pytree import tree_map
 from torchbenchmark.tasks import COMPUTER_VISION
 

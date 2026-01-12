@@ -5,7 +5,6 @@ from contextlib import nullcontext
 from typing import Tuple
 
 import torch
-
 import torch.nn as nn
 from torchbenchmark.tasks import NLP
 from torchbenchmark.util.model import BenchmarkModel

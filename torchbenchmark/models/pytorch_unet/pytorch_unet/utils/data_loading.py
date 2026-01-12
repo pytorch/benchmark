@@ -37,9 +37,9 @@ class BasicDataset(Dataset):
     def preprocess(cls, pil_img, scale, is_mask):
         w, h = pil_img.size
         newW, newH = int(scale * w), int(scale * h)
-        assert (
-            newW > 0 and newH > 0
-        ), "Scale is too small, resized images would have no pixel"
+        assert newW > 0 and newH > 0, (
+            "Scale is too small, resized images would have no pixel"
+        )
         pil_img = pil_img.resize((newW, newH))
         img_ndarray = np.asarray(pil_img)
 
@@ -68,18 +68,18 @@ class BasicDataset(Dataset):
         mask_file = list(self.masks_dir.glob(name + self.mask_suffix + ".*"))
         img_file = list(self.images_dir.glob(name + ".*"))
 
-        assert (
-            len(mask_file) == 1
-        ), f"Either no mask or multiple masks found for the ID {name}: {mask_file}"
-        assert (
-            len(img_file) == 1
-        ), f"Either no image or multiple images found for the ID {name}: {img_file}"
+        assert len(mask_file) == 1, (
+            f"Either no mask or multiple masks found for the ID {name}: {mask_file}"
+        )
+        assert len(img_file) == 1, (
+            f"Either no image or multiple images found for the ID {name}: {img_file}"
+        )
         mask = self.load(mask_file[0])
         img = self.load(img_file[0])
 
-        assert (
-            img.size == mask.size
-        ), "Image and mask {name} should be the same size, but are {img.size} and {mask.size}"
+        assert img.size == mask.size, (
+            "Image and mask {name} should be the same size, but are {img.size} and {mask.size}"
+        )
 
         img = self.preprocess(img, self.scale, is_mask=False)
         mask = self.preprocess(mask, self.scale, is_mask=True)

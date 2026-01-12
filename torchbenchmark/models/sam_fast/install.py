@@ -1,7 +1,6 @@
 import os
 
 import requests
-
 from utils import s3_utils
 from utils.python_utils import pip_install_requirements
 

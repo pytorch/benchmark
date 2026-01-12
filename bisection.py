@@ -23,7 +23,6 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import yaml
-
 from userbenchmark.utils import (
     parse_abtest_result_from_regression_file_for_bisect,
     TorchBenchABTestResult,
@@ -125,9 +124,9 @@ def get_updated_clean_torch_repos(
     all_repos = {}
 
     def _gen_torch_repo(repo_name: str, repo_path: str):
-        assert (
-            repo_path.exists() and repo_path.is_dir()
-        ), f"{str(repo_path)} is not an existing directory."
+        assert repo_path.exists() and repo_path.is_dir(), (
+            f"{str(repo_path)} is not an existing directory."
+        )
         main_branch = (
             "main"
             if not "main_branch" in TORCHBENCH_BISECTION_TARGETS[repo_name]
@@ -216,9 +215,9 @@ class BisectionTargetRepo:
             print(
                 f"Checking out {repo.name} commit {dep_commit} ...", end="", flush=True
             )
-            assert gitutils.checkout_git_commit(
-                repo.src_path.absolute(), dep_commit
-            ), f"Failed to checkout commit {dep_commit} of {repo.name}"
+            assert gitutils.checkout_git_commit(repo.src_path.absolute(), dep_commit), (
+                f"Failed to checkout commit {dep_commit} of {repo.name}"
+            )
             print("done.")
 
     def prep(self, interactive: bool = False) -> bool:
@@ -314,9 +313,9 @@ class TorchBenchRepo:
         output_dir = os.path.join(self.workdir.absolute(), commit.sha)
         # If the directory already exists, clear its contents
         if os.path.exists(output_dir):
-            assert os.path.isdir(
-                output_dir
-            ), "Must specify output directory: {output_dir}"
+            assert os.path.isdir(output_dir), (
+                "Must specify output directory: {output_dir}"
+            )
             shutil.rmtree(output_dir)
         os.mkdir(output_dir)
         # If the first time to run benchmark, install the dependencies first
@@ -612,15 +611,15 @@ def main() -> None:
 
     bisect_config = parse_abtest_result_from_regression_file_for_bisect(args.config)
     # sanity checks
-    assert (
-        bisect_config.name
-    ), "Invalid bisection config, must specify userbenchmark name."
-    assert bisect_config.control_env[
-        "git_commit_hash"
-    ], "Invalid bisection config, must specify control group commit hash."
-    assert bisect_config.treatment_env[
-        "git_commit_hash"
-    ], "Invalid bisection config, must specify treatment group commit hash."
+    assert bisect_config.name, (
+        "Invalid bisection config, must specify userbenchmark name."
+    )
+    assert bisect_config.control_env["git_commit_hash"], (
+        "Invalid bisection config, must specify control group commit hash."
+    )
+    assert bisect_config.treatment_env["git_commit_hash"], (
+        "Invalid bisection config, must specify treatment group commit hash."
+    )
     assert bisect_config.bisection in TORCHBENCH_BISECTION_TARGETS.keys(), (
         f"Invalid bisection config, "
         f"get bisection target repo {bisect_config.bisection}, "
@@ -632,9 +631,9 @@ def main() -> None:
     if args.skip_update:
         skip_update_repos = list(map(lambda x: x.strip(), args.skip_update.split(",")))
         for repo in skip_update_repos:
-            assert (
-                repo in list(TORCHBENCH_BISECTION_TARGETS.keys())
-            ), f"User specified skip update repo {repo} not in list: {TORCHBENCH_BISECTION_TARGETS.keys()}"
+            assert repo in list(TORCHBENCH_BISECTION_TARGETS.keys()), (
+                f"User specified skip update repo {repo} not in list: {TORCHBENCH_BISECTION_TARGETS.keys()}"
+            )
     else:
         skip_update_repos = None
     if args.skip_install_torchbench:

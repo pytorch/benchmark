@@ -156,6 +156,6 @@ def list_extended_models(suite_name: str = "all") -> List[str]:
     elif suite_name == "all":
         return list_extended_huggingface_models() + list_extended_timm_models()
     else:
-        assert (
-            False
-        ), "Currently, we only support extended model set huggingface or timm."
+        assert False, (
+            "Currently, we only support extended model set huggingface or timm."
+        )

@@ -7,7 +7,6 @@ from typing import List
 
 import torch
 import torch.nn.functional as F
-
 import torch_geometric
 from torch import Tensor
 from torch_geometric.loader import NeighborLoader

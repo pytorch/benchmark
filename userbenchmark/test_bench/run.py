@@ -10,7 +10,6 @@ import os
 import pathlib
 import re
 import shutil
-
 from typing import Dict, List, Optional, Set, Union
 
 import numpy
@@ -23,7 +22,6 @@ from ..utils import (
     get_default_output_json_path,
     get_output_json,
 )
-
 from . import BM_NAME
 
 # Some of the models have very heavyweight setup, so we have to set a very
@@ -135,9 +133,9 @@ def get_metrics(config: TorchBenchModelConfig) -> List[str]:
 def validate(candidates: List[str], choices: Union[Set[str], List[str]]) -> List[str]:
     """Validate the candidates provided by the user is valid"""
     for candidate in candidates:
-        assert (
-            candidate in choices
-        ), f"Specified {candidate}, but not in available list: {choices}."
+        assert candidate in choices, (
+            f"Specified {candidate}, but not in available list: {choices}."
+        )
     return candidates
 
 
@@ -250,9 +248,9 @@ def run_config_memleak(
 def run_config_accuracy(
     config: TorchBenchModelConfig, metrics: List[str], dryrun: bool = False
 ) -> Dict[str, str]:
-    assert metrics == [
-        "accuracy"
-    ], f"When running accuracy test, others metrics are not supported: {metrics}."
+    assert metrics == ["accuracy"], (
+        f"When running accuracy test, others metrics are not supported: {metrics}."
+    )
     print(f"Running {config} ...", end="", flush=True)
     if dryrun:
         print(" [skip_by_dryrun]", flush=True)

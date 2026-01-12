@@ -1,5 +1,7 @@
-import argparse, cv2, glob
+import argparse
+import glob
 
+import cv2
 import numpy as np
 
 MAX_FEATURES = 500

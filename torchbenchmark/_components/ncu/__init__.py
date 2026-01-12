@@ -65,7 +65,8 @@ def do_bench_in_task(
             x.grad = None
     # we clear the L2 cache before run
     cache.zero_()
-    with cuda_profiler_range(use_cuda_profiler_range), torch.cuda.nvtx.range(
-        range_name
+    with (
+        cuda_profiler_range(use_cuda_profiler_range),
+        torch.cuda.nvtx.range(range_name),
     ):
         fn()

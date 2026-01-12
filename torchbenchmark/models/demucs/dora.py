@@ -19,7 +19,6 @@ from itertools import product  # noqa
 from pathlib import Path
 
 import treetable as tt  # really great package for ascii art tables
-
 from demucs.parser import get_name, get_parser
 
 logger = logging.getLogger(__name__)

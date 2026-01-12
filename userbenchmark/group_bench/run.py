@@ -12,12 +12,10 @@ import os
 import pathlib
 import re
 import shutil
-
 from typing import Any, Dict, List, Optional, Union
 
 import numpy
 import yaml
-
 from torchbenchmark.util.experiment.instantiator import (
     list_devices,
     list_models,
@@ -129,9 +127,9 @@ def get_metrics(metrics: List[str], config: TorchBenchModelConfig) -> List[str]:
 def validate(candidates: List[str], choices: List[str]) -> List[str]:
     """Validate the candidates provided by the user is valid"""
     for candidate in candidates:
-        assert (
-            candidate in choices
-        ), f"Specified {candidate}, but not in available list: {choices}."
+        assert candidate in choices, (
+            f"Specified {candidate}, but not in available list: {choices}."
+        )
     return candidates
 
 
@@ -188,9 +186,9 @@ def run_config(
 def run_config_accuracy(
     config: TorchBenchModelConfig, metrics: List[str], dryrun: bool = False
 ) -> Dict[str, str]:
-    assert metrics == [
-        "accuracy"
-    ], f"When running accuracy test, others metrics are not supported: {metrics}."
+    assert metrics == ["accuracy"], (
+        f"When running accuracy test, others metrics are not supported: {metrics}."
+    )
     print(f"Running {config} ...", end="", flush=True)
     if dryrun:
         print(" [skip_by_dryrun]", flush=True)

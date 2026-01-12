@@ -1,7 +1,6 @@
 import torch.nn as nn
 
 from ..utils import get_attn_pad_mask, get_non_pad_mask
-
 from .attention import MultiHeadAttention
 from .module import PositionalEncoding, PositionwiseFeedForward
 

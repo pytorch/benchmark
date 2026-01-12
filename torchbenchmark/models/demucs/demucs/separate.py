@@ -143,8 +143,7 @@ def main():
         "--models",
         type=Path,
         default=Path("models"),
-        help="Path to trained models. "
-        "Also used to store downloaded pretrained models",
+        help="Path to trained models. Also used to store downloaded pretrained models",
     )
     parser.add_argument(
         "--dl", action="store_true", help="Automatically download model if missing."

@@ -8,7 +8,6 @@ import json
 import math
 import os
 import re
-
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy
@@ -66,13 +65,13 @@ def compute_score(results, reference_latencies: Dict[str, float]) -> float:
     test_set = set(latency_results.keys())
     reference_set = set(reference_latencies.keys())
     test_only_set = test_set.difference(reference_set)
-    assert (
-        not test_only_set
-    ), f"Tests {test_only_set} only appears in result json, not in reference yaml."
+    assert not test_only_set, (
+        f"Tests {test_only_set} only appears in result json, not in reference yaml."
+    )
     reference_only_set = reference_set.difference(test_set)
-    assert (
-        not reference_only_set
-    ), f"Tests {reference_only_set} only appears in reference yaml, not in result json."
+    assert not reference_only_set, (
+        f"Tests {reference_only_set} only appears in reference yaml, not in result json."
+    )
     # check that for every test in reference_latencies, we can find the corresponding tests in latency_results
     total_score = 0.0
     weight = 1.0 / len(reference_latencies)
@@ -114,9 +113,9 @@ def result_to_output_metrics(
 def validate(candidates: List[str], choices: List[str]) -> List[str]:
     """Validate the candidates provided by the user is valid"""
     for candidate in candidates:
-        assert (
-            candidate in choices
-        ), f"Specified {candidate}, but not in available list: {choices}."
+        assert candidate in choices, (
+            f"Specified {candidate}, but not in available list: {choices}."
+        )
     return candidates
 
 
@@ -242,9 +241,9 @@ def parse_args(args):
 def run(args: List[str]):
     args = parse_args(args)
     if args.score:
-        assert (
-            args.config
-        ), f"To compute score, you must specify the config YAML using --config."
+        assert args.config, (
+            f"To compute score, you must specify the config YAML using --config."
+        )
         configs, reference_latencies, config_obj = generate_model_configs_from_yaml(
             args.config
         )

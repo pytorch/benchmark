@@ -10,7 +10,6 @@ Logic:
 """
 
 import json
-
 from pathlib import Path
 
 import kaldi_io

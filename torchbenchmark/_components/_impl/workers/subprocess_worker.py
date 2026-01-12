@@ -121,7 +121,7 @@ class SubprocessWorker(base.WorkerBase):
         # Append the parent process's sys.path to child process environment
         parent_sys_path = ":".join(list(filter(lambda x: x, sys.path)))
         if "PYTHONPATH" in worker_env:
-            worker_env["PYTHONPATH"] = f'{worker_env["PYTHONPATH"]}:{parent_sys_path}'
+            worker_env["PYTHONPATH"] = f"{worker_env['PYTHONPATH']}:{parent_sys_path}"
         else:
             worker_env["PYTHONPATH"] = parent_sys_path
         self._proc = subprocess.Popen(

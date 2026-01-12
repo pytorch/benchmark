@@ -1,6 +1,5 @@
 import numpy as np
 import torch
-
 import torch.nn as nn
 from Renderer.model import FCN
 from Renderer.stroke_gen import *

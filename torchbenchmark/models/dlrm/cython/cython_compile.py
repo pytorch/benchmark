@@ -10,7 +10,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 from distutils.extension import Extension
 
 from Cython.Build import cythonize
-
 from setuptools import setup
 
 ext_modules = [

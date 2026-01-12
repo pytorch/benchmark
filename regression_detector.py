@@ -72,10 +72,10 @@ def generate_regression_result(
     ) -> TorchBenchABTestResult:
         return detector(control, treatment)
 
-    assert (
-        control["name"] == treatment["name"]
-    ), f'Expected the same userbenchmark name from metrics files, \
-                                                but getting {control["name"]} and {treatment["name"]}.'
+    assert control["name"] == treatment["name"], (
+        f"Expected the same userbenchmark name from metrics files, \
+                                                but getting {control['name']} and {treatment['name']}."
+    )
     bm_name = control["name"]
     try:
         detector = importlib.import_module(
@@ -257,7 +257,9 @@ def get_metrics_by_date(
         if metric_datetime.date() == pick_date.date():
             pick_metrics_json_key = metrics_json_key
             break
-    assert pick_metrics_json_key, f"Selected date {pick_date} is not found in the latest_metrics_jsons: {latest_metrics_jsons}"
+    assert pick_metrics_json_key, (
+        f"Selected date {pick_date} is not found in the latest_metrics_jsons: {latest_metrics_jsons}"
+    )
     s3 = S3Client(USERBENCHMARK_S3_BUCKET, USERBENCHMARK_S3_OBJECT)
     metrics_json = s3.get_file_as_json(pick_metrics_json_key)
     return (metrics_json, pick_metrics_json_key)
@@ -355,9 +357,9 @@ if __name__ == "__main__":
     control, treatment = None, None
     if not args.control and args.treatment:
         json_path = Path(args.treatment)
-        assert (
-            json_path.exists()
-        ), f"Specified result json path {args.treatment} does not exist."
+        assert json_path.exists(), (
+            f"Specified result json path {args.treatment} does not exist."
+        )
         end_date: datetime = datetime.strptime(
             get_date_from_metrics(json_path.stem), "%Y-%m-%d"
         )
@@ -365,17 +367,17 @@ if __name__ == "__main__":
         with open(json_path, "r") as cfptr:
             treatment = json.load(cfptr)
     else:
-        assert (
-            args.name
-        ), f"To detect regression with S3, you must specify a userbenchmark name."
+        assert args.name, (
+            f"To detect regression with S3, you must specify a userbenchmark name."
+        )
         userbenchmark_name = args.name
         end_date = datetime.strptime(args.end_date, "%Y-%m-%d")
 
     # Only download the existing regression YAML file from S3
     if args.download_from_s3:
-        assert (
-            args.output
-        ), f"You must specify a regression output file path for S3 download."
+        assert args.output, (
+            f"You must specify a regression output file path for S3 download."
+        )
         regression_yaml_cond = lambda x: x.endswith(".yaml") and "regression" in x
         available_regression_yamls = get_latest_files_in_s3_from_last_n_days(
             userbenchmark_name, args.platform, end_date, regression_yaml_cond, ndays=1

@@ -52,9 +52,9 @@ class LearnedPositionalEmbedding(nn.Embedding):
         positions: Optional[Tensor] = None,
     ):
         """Input is expected to be of size [bsz x seqlen]."""
-        assert (positions is None) or (
-            self.padding_idx is None
-        ), "If positions is pre-computed then padding_idx should not be set."
+        assert (positions is None) or (self.padding_idx is None), (
+            "If positions is pre-computed then padding_idx should not be set."
+        )
 
         # we cannot use incremental state here because we must be aware of
         # padding.
@@ -261,14 +261,14 @@ class MultiheadAttention(nn.Module):
         self.num_heads = num_heads
         self.dropout_module = Dropout(dropout, module_name=self.__class__.__name__)
         self.head_dim = embed_dim // num_heads
-        assert (
-            self.head_dim * num_heads == self.embed_dim
-        ), "embed_dim must be divisible by num_heads"
+        assert self.head_dim * num_heads == self.embed_dim, (
+            "embed_dim must be divisible by num_heads"
+        )
         self.scaling = self.head_dim**-0.5
         self.self_attention = self_attention
 
         assert not self.self_attention or self.qkv_same_dim, (
-            "Self-attention requires query, key and " "value to be of the same size"
+            "Self-attention requires query, key and value to be of the same size"
         )
         random_state = torch.get_rng_state()
         # random_state_cuda = torch.cuda.get_rng_state()

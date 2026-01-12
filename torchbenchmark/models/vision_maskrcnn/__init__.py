@@ -34,9 +34,9 @@ if not os.path.exists(DATA_DIR):
         DATA_DIR = os.path.join(install_data("coco2017-minimal"), "coco2017-minimal")
     except Exception:
         pass
-assert os.path.exists(
-    DATA_DIR
-), "Couldn't find coco2017 minimal data dir, please run install.py again."
+assert os.path.exists(DATA_DIR), (
+    "Couldn't find coco2017 minimal data dir, please run install.py again."
+)
 COCO_DATA_KEY = "coco_2017_val_100"
 COCO_DATA = {
     "coco_2017_val_100": ("coco/val2017", "coco/annotations/instances_val2017_100.json")

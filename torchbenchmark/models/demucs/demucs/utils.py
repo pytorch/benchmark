@@ -30,7 +30,7 @@ def center_trim(tensor: Tensor, reference: Tensor) -> Tensor:
     reference_val: int = reference.size(-1)
     delta = tensor.size(-1) - reference_val
     if delta < 0:
-        raise ValueError("tensor must be larger than reference. " f"Delta is {delta}.")
+        raise ValueError(f"tensor must be larger than reference. Delta is {delta}.")
     if delta:
         tensor = tensor[..., delta // 2 : -(delta - delta // 2)]
     return tensor

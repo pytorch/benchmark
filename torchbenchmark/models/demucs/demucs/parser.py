@@ -192,8 +192,7 @@ def get_parser():
     parser.add_argument(
         "--upsample",
         action="store_true",
-        help="Use linear upsampling + convolution "
-        "instead of transposed convolutions",
+        help="Use linear upsampling + convolution instead of transposed convolutions",
     )
 
     # Benchmark options

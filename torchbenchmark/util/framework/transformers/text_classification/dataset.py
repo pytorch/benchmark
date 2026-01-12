@@ -133,9 +133,9 @@ def prep_dataset(hf_args):
             if hf_args.test_file is not None:
                 train_extension = hf_args.train_file.split(".")[-1]
                 test_extension = hf_args.test_file.split(".")[-1]
-                assert (
-                    test_extension == train_extension
-                ), "`test_file` should have the same extension (csv or json) as `train_file`."
+                assert test_extension == train_extension, (
+                    "`test_file` should have the same extension (csv or json) as `train_file`."
+                )
                 data_files["test"] = hf_args.test_file
             else:
                 raise ValueError(

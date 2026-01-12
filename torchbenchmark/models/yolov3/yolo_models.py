@@ -139,7 +139,9 @@ def create_modules(module_defs, img_size, cfg):
                 bias = bias_[: modules.no * modules.na].view(
                     modules.na, -1
                 )  # shape(3,85)
-                with torch.no_grad():  # avoids "requires grad is being used in an in-place operation"
+                with (
+                    torch.no_grad()
+                ):  # avoids "requires grad is being used in an in-place operation"
                     bias.data[:, 4] += -4.5  # obj
                     bias.data[:, 5:] += math.log(
                         0.6 / (modules.nc - 0.99)

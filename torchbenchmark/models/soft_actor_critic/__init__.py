@@ -8,7 +8,6 @@ import torch
 from torchbenchmark.tasks import REINFORCEMENT_LEARNING
 
 from ...util.model import BenchmarkModel
-
 from .config import SACConfig
 from .envs import load_gym
 from .replay import PrioritizedReplayBuffer, ReplayBuffer

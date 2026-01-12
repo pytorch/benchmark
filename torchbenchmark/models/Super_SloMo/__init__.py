@@ -1,12 +1,10 @@
 import os
-
 from argparse import Namespace
 from typing import Tuple
 
 import torch
 import torch.optim as optim
 import torchvision.transforms as transforms
-
 from torchbenchmark import DATA_PATH
 from torchbenchmark.tasks import COMPUTER_VISION
 

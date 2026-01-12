@@ -1,6 +1,5 @@
 import argparse
 import re
-
 from enum import Enum
 
 import torch

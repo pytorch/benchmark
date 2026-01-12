@@ -3,7 +3,6 @@ import typing
 
 import torch
 from torch.utils.data import DataLoader
-
 from torchbenchmark.util.env_check import set_random_seed
 
 from .bert_pytorch import parse_args

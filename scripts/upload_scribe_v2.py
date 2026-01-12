@@ -247,9 +247,9 @@ if __name__ == "__main__":
     for data in json_score:
         if os.path.basename(data["file"]) == json_name:
             score_data = data
-    assert (
-        score_data
-    ), f"Can't find {json_name} score in {args.torchbench_score_file}. Stop."
+    assert score_data, (
+        f"Can't find {json_name} score in {args.torchbench_score_file}. Stop."
+    )
     benchmark_uploader = PytorchBenchmarkUploader()
     json_data = json.load(args.pytest_bench_json)
     benchmark_uploader.post_pytest_benchmarks(json_data)
