@@ -10,7 +10,6 @@ import sys
 import types
 import warnings
 
-
 try:
     from .common import (
         BenchmarkRunner,
@@ -32,6 +31,7 @@ import torch
 from torch._dynamo.testing import collect_results
 from torch._dynamo.utils import clone_inputs
 
+from utils.python_utils import get_pip_cmd
 
 log = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ if "TORCHINDUCTOR_AUTOGRAD_CACHE" not in os.environ:
 
 
 def pip_install(package):
-    subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+    subprocess.check_call(get_pip_cmd() + ["install", package])
 
 
 # Disable the flake warnings for the imports. Flake8 does not provide a way to
@@ -647,7 +647,9 @@ def refresh_model_names_and_batch_sizes():
                 + [f"--output={MODELS_FILENAME}"]
             )
         except subprocess.SubprocessError:
-            log.warning(f"Failed to find suitable batch size for {model_name}")  # noqa: G004
+            log.warning(
+                f"Failed to find suitable batch size for {model_name}"
+            )  # noqa: G004
 
 
 def huggingface_main():

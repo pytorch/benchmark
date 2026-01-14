@@ -1,4 +1,7 @@
+import os
+import shutil
 import subprocess
+import sys
 import warnings
 from pathlib import Path
 from typing import List, Optional
@@ -24,14 +27,20 @@ def create_conda_env(pyver: str, name: str):
     subprocess.check_call(command)
 
 
+def get_pip_cmd():
+    if env := os.getenv("PIP_MODULE"):
+        return env.split()
+    else:
+        return [sys.executable, "-m", "pip"]
+
+
 def pip_install_requirements(
     requirements_txt="requirements.txt",
     continue_on_fail=False,
     no_build_isolation=False,
     extra_args: Optional[List[str]] = None,
 ):
-    import sys
-
+    install_cmd = get_pip_cmd()
     constraints_file = REPO_DIR.joinpath("build", "constraints.txt")
     if not constraints_file.exists():
         warnings.warn(
@@ -49,14 +58,12 @@ def pip_install_requirements(
         constraints_parameters.extend(extra_args)
     if not continue_on_fail:
         subprocess.check_call(
-            [sys.executable, "-m", "pip", "install", "-r", requirements_txt]
-            + constraints_parameters,
+            install_cmd + ["install", "-r", requirements_txt] + constraints_parameters,
         )
         return True, None
     try:
         subprocess.run(
-            [sys.executable, "-m", "pip", "install", "-r", requirements_txt]
-            + constraints_parameters,
+            install_cmd + ["install", "-r", requirements_txt] + constraints_parameters,
             check=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,

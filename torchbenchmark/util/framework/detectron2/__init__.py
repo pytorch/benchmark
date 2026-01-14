@@ -6,7 +6,7 @@ from pathlib import Path
 from urllib import request
 
 from utils import s3_utils
-from utils.python_utils import pip_install_requirements
+from utils.python_utils import get_pip_cmd, pip_install_requirements
 
 CURRENT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))
 # Load pre-trained weights
@@ -46,15 +46,8 @@ def pip_install_requirements_detectron2():
     # Installing by --no-build-isolation after explicitly installing build-time requirements is required.
     # See https://github.com/facebookresearch/detectron2/issues/4921
     subprocess.check_call(
-        [
-            sys.executable,
-            "-m",
-            "pip",
-            "install",
-            "-q",
-            "wheel",
-            "cython",
-        ]  # Build-time requirements
+        get_pip_cmd()
+        + ["install", "-q", "wheel", "cython"]  # Build-time requirements
     )
     pip_install_requirements(
         requirements_txt=requirements_file, no_build_isolation=True
