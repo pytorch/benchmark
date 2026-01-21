@@ -4,6 +4,8 @@ import subprocess
 import sys
 from typing import Optional, Tuple
 
+from utils.python_utils import get_pip_cmd
+
 parser = argparse.ArgumentParser(allow_abbrev=False)
 parser.add_argument(
     "models",
@@ -44,7 +46,7 @@ def run_install_py(cwd: str, continue_on_fail=False) -> Tuple[bool, Optional[str
 def pip_install_requirements(
     cwd: str, continue_on_fail=False
 ) -> Tuple[bool, Optional[str]]:
-    cmd = [sys.executable, "-m", "pip", "install", "-r", "requirements.txt"]
+    cmd = get_pip_cmd() + ["install", "-r", "requirements.txt"]
     return _run(*cmd, cwd=cwd, continue_on_fail=continue_on_fail)
 
 

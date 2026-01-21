@@ -8,7 +8,6 @@ import subprocess
 import sys
 import warnings
 
-
 try:
     from .common import BenchmarkRunner, download_retry_decorator, load_yaml_file, main
 except ImportError:
@@ -18,6 +17,7 @@ import torch
 from torch._dynamo.testing import collect_results, reduce_to_scalar_loss
 from torch._dynamo.utils import clone_inputs
 
+from utils.python_utils import get_pip_cmd
 
 # Enable FX graph caching
 if "TORCHINDUCTOR_FX_GRAPH_CACHE" not in os.environ:
@@ -25,7 +25,7 @@ if "TORCHINDUCTOR_FX_GRAPH_CACHE" not in os.environ:
 
 
 def pip_install(package):
-    subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+    subprocess.check_call(get_pip_cmd() + ["install", package])
 
 
 try:
