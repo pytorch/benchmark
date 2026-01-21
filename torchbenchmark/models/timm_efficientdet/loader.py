@@ -79,6 +79,7 @@ def create_datasets_and_loaders(
         anchor_labeler=labeler,
         transform_fn=transform_train_fn,
         collate_fn=collate_fn,
+        device=args.device
     )
 
     if args.val_skip > 1:
@@ -99,6 +100,7 @@ def create_datasets_and_loaders(
         anchor_labeler=labeler,
         transform_fn=transform_eval_fn,
         collate_fn=collate_fn,
+        device=args.device
     )
 
     evaluator = create_evaluator(
