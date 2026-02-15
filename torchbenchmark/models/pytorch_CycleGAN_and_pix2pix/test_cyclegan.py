@@ -47,9 +47,6 @@ def get_model(args, device):
     opt.no_flip = (
         True  # no flip; comment this line if results on flipped images are needed.
     )
-    opt.display_id = (
-        -1
-    )  # no visdom display; the test code saves the results to a HTML file.
     model = create_model(opt)  # create a model given opt.model and other options
     if len(opt.gpu_ids) > 0:
         # When opt.gpu_ids > 0, netG is converted to torch.nn.DataParallel
@@ -82,9 +79,6 @@ if __name__ == "__main__":
     opt.no_flip = (
         True  # no flip; comment this line if results on flipped images are needed.
     )
-    opt.display_id = (
-        -1
-    )  # no visdom display; the test code saves the results to a HTML file.
     dataset = create_dataset(
         opt
     )  # create a dataset given opt.dataset_mode and other options

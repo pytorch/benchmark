@@ -49,7 +49,7 @@ class Model(BenchmarkModel):
 
         if self.test == "train":
             train_args = (
-                f"--tb_device {self.device} --dataroot {data_root}/datasets/horse2zebra --name horse2zebra --model cycle_gan --display_id 0 --n_epochs 3 "
+                f"--tb_device {self.device} --dataroot {data_root}/datasets/horse2zebra --name horse2zebra --model cycle_gan --n_epochs 3 "
                 + f"--n_epochs_decay 3 {device_type_arg} {device_arg} {checkpoints_arg}"
             )
             self.training_loop = prepare_training_loop(train_args.split(" "))

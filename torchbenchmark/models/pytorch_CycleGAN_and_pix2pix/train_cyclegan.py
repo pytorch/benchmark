@@ -99,10 +99,6 @@ def prepare_training_loop(args):
                     visualizer.print_current_losses(
                         epoch, epoch_iter, losses, t_comp, t_data
                     )
-                    if opt.display_id > 0:
-                        visualizer.plot_current_losses(
-                            epoch, float(epoch_iter) / dataset_size, losses
-                        )
 
                 if (
                     total_iters % opt.save_latest_freq == 0
