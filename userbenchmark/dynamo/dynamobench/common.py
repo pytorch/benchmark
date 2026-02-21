@@ -42,7 +42,6 @@ import torch._export
 import torch.distributed
 import torch.multiprocessing as mp
 from torch._C import _has_cuda as HAS_CUDA, _has_xpu as HAS_XPU
-from torch._C._nativert import PyModelRunner
 from torch._dynamo.profiler import fx_insert_profiling, Profiler
 from torch._dynamo.testing import (
     dummy_fx_compile,
@@ -1461,6 +1460,7 @@ class NativeRTCache:
                     f, exported_programs={"forward": ep}
                 )
                 filename = f.name
+            from torch._C._nativert import PyModelRunner
             cls.cache[key] = PyModelRunner(filename, "forward")
 
         return cls.cache[key]
