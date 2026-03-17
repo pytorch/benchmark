@@ -523,7 +523,7 @@ class TorchBenchBisection:
             )
             if signal:
                 mid = self.target_repo.get_mid_commit(left, right)
-                if mid == None:
+                if mid is None:
                     self.result.append((left, right))
                 else:
                     self.bisectq.append((left, mid, updated_abtest_result))
