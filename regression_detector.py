@@ -81,7 +81,7 @@ def generate_regression_result(
         detector = importlib.import_module(
             f"userbenchmark.{bm_name}.regression_detector"
         ).run
-    except:
+    except Exception:
         # fbcode
         detector = importlib.import_module(
             f"userbenchmark.fb.{bm_name}.regression_detector"
@@ -147,8 +147,7 @@ def process_regressions_into_gh_issue(
     def _parse_date_from_pytorch_version(pytorch_version: str) -> Optional[str]:
         # example pytorch nightly version: "2.2.0.dev20231116+cu118"
         # return a date string like "2023-11-16"
-        ver_regex = "dev[0-9+]\+"
-        s = re.search(ver_regex, pytorch_version)
+        s = re.search(r"dev[0-9+]\+", pytorch_version)
         if not s or not s.groups():
             return None
         return datetime.strftime(datetime.strptime(s.groups[0], "%Y%m%d"), "%Y-%m-%d")
@@ -368,7 +367,7 @@ if __name__ == "__main__":
             treatment = json.load(cfptr)
     else:
         assert args.name, (
-            f"To detect regression with S3, you must specify a userbenchmark name."
+            "To detect regression with S3, you must specify a userbenchmark name."
         )
         userbenchmark_name = args.name
         end_date = datetime.strptime(args.end_date, "%Y-%m-%d")
@@ -376,15 +375,19 @@ if __name__ == "__main__":
     # Only download the existing regression YAML file from S3
     if args.download_from_s3:
         assert args.output, (
-            f"You must specify a regression output file path for S3 download."
+            "You must specify a regression output file path for S3 download."
         )
-        regression_yaml_cond = lambda x: x.endswith(".yaml") and "regression" in x
+
+        def regression_yaml_cond(x):
+            return x.endswith(".yaml") and "regression" in x
+
         available_regression_yamls = get_latest_files_in_s3_from_last_n_days(
             userbenchmark_name, args.platform, end_date, regression_yaml_cond, ndays=1
         )
         if not len(available_regression_yamls):
             raise RuntimeError(
-                f"No regression yaml found on S3 for end date {end_date}, userbenchmark {userbenchmark_name}, and platform {args.platform}"
+                f"No regression yaml found on S3 for end date {end_date}, "
+                f"userbenchmark {userbenchmark_name}, and platform {args.platform}"
             )
         latest_regression_yaml = available_regression_yamls[0]
         s3 = S3Client(USERBENCHMARK_S3_BUCKET, USERBENCHMARK_S3_OBJECT)
@@ -394,14 +397,17 @@ if __name__ == "__main__":
         print(f"Downloaded the regression yaml file to path {args.output}")
         exit(0)
 
-    metrics_json_cond = lambda x: x.endswith(".json") and "metrics" in x
+    def metrics_json_cond(x):
+        return x.endswith(".json") and "metrics" in x
+
     available_metrics_jsons = get_latest_files_in_s3_from_last_n_days(
         userbenchmark_name, args.platform, end_date, metrics_json_cond, ndays=7
     )
     # Download control from S3
     if len(available_metrics_jsons) == 0:
         raise RuntimeError(
-            f"No previous JSONS in a week found to compare towards the end date {end_date}. No regression info has been generated."
+            f"No previous JSONS in a week found to compare towards the end date "
+            f"{end_date}. No regression info has been generated."
         )
     print(f"Found metrics json files on S3: {available_metrics_jsons}")
     start_date = (
@@ -411,12 +417,15 @@ if __name__ == "__main__":
     )
     if not start_date:
         raise RuntimeError(
-            f"No start date in previous JSONS found to compare towards the end date {end_date}. User specified start date: {args.start_date}. "
+            f"No start date in previous JSONS found to compare towards the end date "
+            f"{end_date}. User specified start date: {args.start_date}. "
             + "No regression info has been generated."
         )
 
     print(
-        f"[TorchBench Regression Detector] Detecting regression of {userbenchmark_name} on platform {args.platform}, start date: {start_date}, end date: {end_date}."
+        f"[TorchBench Regression Detector] Detecting regression of "
+        f"{userbenchmark_name} on platform {args.platform}, "
+        f"start date: {start_date}, end date: {end_date}."
     )
     (control, control_file) = (
         get_metrics_by_date(available_metrics_jsons, start_date)
