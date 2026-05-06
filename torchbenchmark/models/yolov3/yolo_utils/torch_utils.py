@@ -24,25 +24,27 @@ def init_seeds(seed=0):
 
 
 def select_device(device="", apex=False, batch_size=None):
-    # device = 'cpu', 'xpu' or '0' or '0,1,2,3'
+    # device = 'cpu', 'xpu', 'hpu' or '0' or '0,1,2,3'
     cpu_request = device.lower() == "cpu"
     xpu_request = device.lower() == "xpu"
+    hpu_request = device.lower() == "hpu"
     if (
-        device and not cpu_request and not xpu_request
-    ):  # if device requested other than 'cpu'and 'xpu'
+        device and not cpu_request and not xpu_request and not hpu_request
+    ):  # if device requested other than 'cpu', 'xpu' and 'hpu
         os.environ["CUDA_VISIBLE_DEVICES"] = device  # set environment variable
         assert torch.cuda.is_available(), (
             "CUDA unavailable, invalid device %s requested" % device
         )  # check availablity
 
-    cuda = False if cpu_request or xpu_request else torch.cuda.is_available()
+    cuda = False if cpu_request or xpu_request or hpu_request else torch.cuda.is_available()
     if cuda:
         return torch.device(f"cuda:{torch.cuda.current_device()}")
-
-    if xpu_request:
+    elif xpu_request:
         print("Using XPU")
         return torch.device(f"xpu:{torch.xpu.current_device()}")
-
+    elif hpu_request:
+        print("Using HPU")
+        return torch.device(f"hpu:{torch.hpu.current_device()}")
     print("Using CPU")
     return torch.device("cpu")
 
