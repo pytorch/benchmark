@@ -82,13 +82,15 @@ def run_one_step_with_cudastreams(func, streamcount):
 def printResultSummaryTime(
     result_summary,
     model,
-    metrics_needed=[],
+    metrics_needed=None,
     flops_model_analyzer=None,
     model_flops=None,
     cpu_peak_mem=None,
     mem_device_id=None,
     gpu_peak_mem=None,
 ):
+    if metrics_needed is None:
+        metrics_needed = []
     assert model is not None, "model can not be None."
     if args.device == "cuda":
         gpu_time = np.median(list(map(lambda x: x[0], result_summary)))
@@ -160,11 +162,13 @@ def run_one_step(
     num_iter=10,
     export_metrics_file=None,
     stress=0,
-    metrics_needed=[],
+    metrics_needed=None,
     metrics_gpu_backend=None,
     model_flops=None,
 ):
     # Warm-up `nwarmup` rounds
+    if metrics_needed is None:
+        metrics_needed = []
     for _i in range(nwarmup):
         func()
 
