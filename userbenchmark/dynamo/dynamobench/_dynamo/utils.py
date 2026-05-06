@@ -5426,3 +5426,12 @@ def _make_inlined(
             return UserFunctionVariable(f).call_function(tx, args, kwargs)  # type: ignore[arg-type]
 
     return inline_call
+
+
+@functools.cache
+def _is_tensorify_enabled() -> bool:
+    from torch._utils_internal import justknobs_check
+
+    if (env := os.getenv("TENSORIFY_PYTHON_SCALARS")) is not None:
+        return env not in ("0", "FALSE")
+    return justknobs_check("pytorch/compiler:tensorify_python_scalars")
