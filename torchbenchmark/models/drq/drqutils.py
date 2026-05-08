@@ -4,7 +4,6 @@ import random
 from collections import deque
 
 import gym
-
 import numpy as np
 import torch
 import torch.nn as nn

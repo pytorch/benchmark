@@ -12,7 +12,6 @@ from torch.utils.data.distributed import DistributedSampler
 from .data_utils import TextMelCollate, TextMelLoader
 from .distributed import apply_gradient_allreduce
 from .loss_function import Tacotron2Loss
-
 from .model import Tacotron2
 
 # from hparams import create_hparams

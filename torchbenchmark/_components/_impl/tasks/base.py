@@ -133,9 +133,9 @@ def parse_f(f: typing.Callable) -> typing.Tuple[inspect.Signature, str]:
         # line comment), we simply elect to skip over them and index on the
         # first node that will give valid indices.
         if node.col_offset == -1:
-            assert isinstance(
-                node.value, ast.Str
-            ), f"Expected `ast.Str`, got {type(node)}. ({node}) {node.lineno}"
+            assert isinstance(node.value, ast.Str), (
+                f"Expected `ast.Str`, got {type(node)}. ({node}) {node.lineno}"
+            )
             continue
 
         raw_body_lines = src_lines[node.lineno - 1 :]

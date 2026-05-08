@@ -24,9 +24,9 @@ def check_csv_file(csv_file, known_models):
         bsize = int(bsize)
         if not bsize == 0:
             optimial_bsizes[model] = bsize
-        assert (
-            model in known_models
-        ), f"Model {model} is not covered in TorchBench core model list."
+        assert model in known_models, (
+            f"Model {model} is not covered in TorchBench core model list."
+        )
     return optimial_bsizes
 
 

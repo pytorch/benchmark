@@ -44,13 +44,13 @@ def validate(candidates, choices: List[str]):
     """Validate the candidates provided by the user is valid"""
     if isinstance(candidates, List):
         for candidate in candidates:
-            assert (
-                candidate in choices
-            ), f"Specified {candidate}, but not in available list: {choices}."
+            assert candidate in choices, (
+                f"Specified {candidate}, but not in available list: {choices}."
+            )
     else:
-        assert (
-            candidates in choices
-        ), f"Specified {candidates}, but not in available list: {choices}."
+        assert candidates in choices, (
+            f"Specified {candidates}, but not in available list: {choices}."
+        )
     return candidates
 
 

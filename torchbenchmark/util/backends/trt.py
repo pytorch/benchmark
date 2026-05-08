@@ -2,7 +2,6 @@ import argparse
 from typing import List
 
 import torch
-
 from torchbenchmark.util.backends import create_backend
 from torchbenchmark.util.env_check import is_hf_model
 
@@ -48,9 +47,9 @@ def parse_torch_trt_args(backend_args: List[str]):
 def fx2trt(model: "torchbenchmark.util.model.BenchmarkModel", backend_args: List[str]):
     FP16 = True if model.dargs.precision == "fp16" else False
     HF_MODEL = True if is_hf_model(model) else False
-    assert (
-        model.device == "cuda" and model.test == "eval"
-    ), f"fx2trt only works on CUDA inference tests."
+    assert model.device == "cuda" and model.test == "eval", (
+        f"fx2trt only works on CUDA inference tests."
+    )
 
     def _fx2trt():
         from torch_tensorrt.fx import compile
@@ -101,9 +100,9 @@ def torch_trt(
         --ir: Which internal representation to use: {"ts", "dynamo_compile", "fx_ts_compat", ...}
     """
     FP16 = True if model.dargs.precision == "fp16" else False
-    assert (
-        model.device == "cuda" and model.test == "eval"
-    ), f"Torch-TRT only works on CUDA inference tests."
+    assert model.device == "cuda" and model.test == "eval", (
+        f"Torch-TRT only works on CUDA inference tests."
+    )
 
     # Extract relevant Torch-TRT arguments from the provided CLI arguments
     torch_trt_kwargs, backend_args = parse_torch_trt_args(backend_args)

@@ -34,7 +34,6 @@ import torch
 from distributed import apply_gradient_allreduce, init_distributed, reduce_tensor
 from glow import WaveGlow, WaveGlowLoss
 from mel2samp import Mel2Samp
-
 # =====END:   ADDED FOR DISTRIBUTED======
 
 from torch.utils.data import DataLoader

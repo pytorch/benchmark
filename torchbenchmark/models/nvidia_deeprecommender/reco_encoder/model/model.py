@@ -72,7 +72,7 @@ class AutoEncoder(nn.Module):
                 for i in range(len(layer_sizes) - 1)
             ]
         )
-        for ind, w in enumerate(self.encode_w):
+        for w in self.encode_w:
             weight_init.xavier_uniform_(w)
 
         self.encode_b = nn.ParameterList(
@@ -94,7 +94,7 @@ class AutoEncoder(nn.Module):
                     for i in range(len(reversed_enc_layers) - 1)
                 ]
             )
-            for ind, w in enumerate(self.decode_w):
+            for w in self.decode_w:
                 nn.init.xavier_uniform_(w)
 
         self.decode_b = nn.ParameterList(

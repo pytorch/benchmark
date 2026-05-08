@@ -4,7 +4,6 @@ import time
 from copy import deepcopy
 
 import numpy as np
-
 import torch
 import torch.backends.cudnn as cudnn
 import torch.nn as nn
@@ -223,7 +222,7 @@ class ModelEMA:
             for k, v in esd.items():
                 if v.dtype.is_floating_point:
                     v *= d
-                    v += (1.0 - d) * msd[k].detach()
+                    v += (1.0 - d) * msd[k].detach().to(self.device)
 
     def update_attr(self, model):
         # Assign attributes (which may change during training)

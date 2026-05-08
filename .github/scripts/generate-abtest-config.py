@@ -189,9 +189,9 @@ if __name__ == "__main__":
     # input directory
     input_dir = Path(args.benchmark_dir)
     tip_json_file = find_latest_nonempty_json(input_dir)
-    assert (
-        tip_json_file
-    ), "The input benchmark directory must contain a non-empty json file!"
+    assert tip_json_file, (
+        "The input benchmark directory must contain a non-empty json file!"
+    )
     tip_version = get_pytorch_version(args.pytorch_dir, tip_json_file)
     parent_dir = input_dir.parent
     base_benchmark_dirs = list(

@@ -10,9 +10,7 @@ import time
 from typing import List, Optional, Tuple, Union
 
 import psutil
-
 import torch
-
 from torchbenchmark import ModelTask
 from torchbenchmark.util.experiment.instantiator import TorchBenchModelConfig
 from torchbenchmark.util.model import BenchmarkModel

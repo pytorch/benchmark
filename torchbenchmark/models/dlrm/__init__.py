@@ -15,7 +15,6 @@ from ...util.model import BenchmarkModel
 
 # data generation
 from . import dlrm_data_pytorch as dp
-
 from .dlrm_s_pytorch import DLRM_Net, LRPolicyScheduler
 
 # mixed-dimension trick

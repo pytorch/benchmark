@@ -2,7 +2,7 @@ from __future__ import division, print_function
 
 import random
 
-import cv2, random
+import cv2
 import numpy as np
 import pandas as pd
 import skimage
@@ -261,7 +261,7 @@ def create_seg(alpha, trimap):
     # print('After %.4f max: %.4f' %(seg.sum(),seg.max()))
     seg = seg.astype(np.float32)
     seg = (255 * seg).astype(np.uint8)
-    for i in range(num_holes):
+    for _ in range(num_holes):
         crop_size = random.choice(crop_size_list)
         cx, cy = random_choice(trimap, crop_size)
         seg = crop_holes(seg, cx, cy, crop_size)

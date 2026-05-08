@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Tuple
 
 import numpy as np
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -77,7 +76,11 @@ class Model(BenchmarkModel):
         root = str(Path(__file__).parent.parent)
         with torch.serialization.safe_globals(
             [
-                np.core.multiarray._reconstruct,
+                (
+                    np._core.multiarray._reconstruct
+                    if np.__version__ >= "2.0.0"
+                    else np.core.multiarray._reconstruct
+                ),
                 np.ndarray,
                 np.dtype,
                 (

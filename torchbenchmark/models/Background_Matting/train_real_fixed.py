@@ -1,16 +1,13 @@
 from __future__ import print_function
 
 import argparse
-
 import os
 import time
 
 import numpy as np
-
 import torch
 import torch.nn as nn
 import torch.optim as optim
-
 from data_loader import VideoData
 from tensorboardX import SummaryWriter
 from torch.autograd import Variable

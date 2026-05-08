@@ -3,11 +3,9 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-
 from typing import List, Optional
 
 import torch
-
 from torchbenchmark.util.e2emodel import E2EBenchmarkModel
 
 CURRENT_DIR = Path(os.path.dirname(os.path.realpath(__file__)))

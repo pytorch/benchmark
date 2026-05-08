@@ -1,6 +1,5 @@
 import json
 import os
-
 from typing import Dict
 
 GITHUB_ISSUE_TEMPLATE = """

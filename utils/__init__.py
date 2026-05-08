@@ -1,5 +1,5 @@
-import subprocess
 import sys
+from importlib.metadata import version
 from pathlib import Path
 from typing import Dict, List
 
@@ -24,9 +24,7 @@ class add_path:
 def get_pkg_versions(packages: List[str]) -> Dict[str, str]:
     versions = {}
     for module in packages:
-        cmd = [sys.executable, "-c", f"import {module}; print({module}.__version__)"]
-        version = subprocess.check_output(cmd).decode().strip()
-        versions[module] = version
+        versions[module] = version(module)
     return versions
 
 

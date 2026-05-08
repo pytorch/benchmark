@@ -114,22 +114,22 @@ def get_arithmetic_intensity(kernel):
 
 
 def read_ncu_report(report_path: str, required_metrics: List[str]):
-    assert os.path.exists(
-        report_path
-    ), f"The NCU report at {report_path} does not exist. Ensure you add --metrics ncu_rep to your benchmark run."
+    assert os.path.exists(report_path), (
+        f"The NCU report at {report_path} does not exist. Ensure you add --metrics ncu_rep to your benchmark run."
+    )
     import_ncu_python_path()
     import ncu_report
 
     # save all kernels' metrics. {metric_name: [kernel1_metric_value, kernel2_metric_value, ...]}
     results = defaultdict(list)
     test_report = ncu_report.load_report(report_path)
-    assert (
-        test_report.num_ranges() > 0
-    ), f"No profile data found in the NCU report at {report_path}"
+    assert test_report.num_ranges() > 0, (
+        f"No profile data found in the NCU report at {report_path}"
+    )
     default_range = test_report.range_by_idx(0)
-    assert (
-        default_range.num_actions() > 0
-    ), f"No profile data found in the default range of the NCU report at {report_path}"
+    assert default_range.num_actions() > 0, (
+        f"No profile data found in the default range of the NCU report at {report_path}"
+    )
     total_duration = 0
     weighted_fp32_ai_sum = 0
     weighted_fp64_ai_sum = 0

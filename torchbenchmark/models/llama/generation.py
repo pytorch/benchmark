@@ -6,7 +6,6 @@ from typing import List
 import torch
 
 from .model import Transformer
-
 from .tokenizer import Tokenizer
 
 

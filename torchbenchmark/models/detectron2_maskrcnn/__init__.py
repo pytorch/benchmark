@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Tuple
 
 import torch
-
 from detectron2.checkpoint import DetectionCheckpointer
 from torchbenchmark.tasks import COMPUTER_VISION
 
@@ -24,9 +23,9 @@ if not os.path.exists(DATA_DIR):
         DATA_DIR = install_data("coco2017-minimal")
     except Exception:
         pass
-assert os.path.exists(
-    DATA_DIR
-), "Couldn't find coco2017 minimal data dir, please run install.py again."
+assert os.path.exists(DATA_DIR), (
+    "Couldn't find coco2017 minimal data dir, please run install.py again."
+)
 if not "DETECTRON2_DATASETS" in os.environ:
     os.environ["DETECTRON2_DATASETS"] = DATA_DIR
 

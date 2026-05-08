@@ -1,4 +1,4 @@
 git+https://github.com/pytorch/functorch.git
 # must include the fix https://github.com/pytorch/opacus/pull/426
 # Pinning to 1.5.3. Remove once is resolved https://github.com/pytorch/pytorch/issues/154446
-opacus>=1.1.2
+opacus>=1.1.2,<1.5.4

@@ -2,7 +2,6 @@ import argparse
 from typing import List
 
 import torch
-
 from torchbenchmark.util.backends import create_backend
 
 

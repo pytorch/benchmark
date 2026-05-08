@@ -5,11 +5,9 @@ Run PyTorch cpu benchmarking.
 import argparse
 import os
 from pathlib import Path
-
 from typing import Dict, List, Optional
 
 import numpy
-
 from cpu_utils import (
     add_path,
     dump_output,

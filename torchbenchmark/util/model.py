@@ -101,9 +101,9 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         self.metadata = self._load_metadata()
         self.test = test
         # sanity checks of the options
-        assert (
-            self.test == "train" or self.test == "eval"
-        ), f"Test must be 'train' or 'eval', but provided {self.test}."
+        assert self.test == "train" or self.test == "eval", (
+            f"Test must be 'train' or 'eval', but provided {self.test}."
+        )
         self.device = device
         self.extra_args = extra_args
         self.opt = None
@@ -144,9 +144,9 @@ class BenchmarkModel(metaclass=PostInitProcessor):
     # Run the post processing for model acceleration
     def __post__init__(self):
         # All arguments should be parsed at this point.
-        assert (
-            not self.extra_args
-        ), f"Expected no unknown args at this point, found {self.extra_args}"
+        assert not self.extra_args, (
+            f"Expected no unknown args at this point, found {self.extra_args}"
+        )
         if self.dargs.accuracy:
             self.accuracy = check_accuracy(self)
             if not self.DISABLE_DETERMINISM:
@@ -207,9 +207,9 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         self, user_specified_num_batches: Optional[int]
     ) -> int:
         if user_specified_num_batches and not user_specified_num_batches == 1:
-            assert (
-                self.test == "train"
-            ), "Only train test support multiple batches at this moment."
+            assert self.test == "train", (
+                "Only train test support multiple batches at this moment."
+            )
             return user_specified_num_batches
         # If user does not specify num_batch, run a single batch by default
         return 1
@@ -299,9 +299,9 @@ class BenchmarkModel(metaclass=PostInitProcessor):
 
     def add_context(self, context_fn, stage=TEST_STAGE.ALL):
         ctx = context_fn()
-        assert isinstance(
-            ctx, ContextManager
-        ), f"Expected adding a ContextManager, get {type(ctx)}. Please report a bug."
+        assert isinstance(ctx, ContextManager), (
+            f"Expected adding a ContextManager, get {type(ctx)}. Please report a bug."
+        )
         if stage == TEST_STAGE.ALL:
             self.run_contexts.append(context_fn)
         elif stage == TEST_STAGE.FORWARD:
@@ -406,9 +406,9 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             and (getattr(self, "train", None) == None)
         ):
             return self._invoke_staged_train_test(num_batch=self.num_batch)
-        assert (
-            self.num_batch == 1
-        ), "Only staged_train_test supports multiple-batch testing at this time."
+        assert self.num_batch == 1, (
+            "Only staged_train_test supports multiple-batch testing at this time."
+        )
         out = None
         with nested(*self.run_contexts):
             if self.test == "train":

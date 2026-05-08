@@ -8,7 +8,6 @@ import os
 import os.path
 
 import torch.utils.data as data
-
 from PIL import Image
 
 IMG_EXTENSIONS = [

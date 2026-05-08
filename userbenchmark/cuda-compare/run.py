@@ -6,7 +6,6 @@ from datetime import datetime
 from typing import List
 
 from ..utils import add_path, dump_output, get_output_dir, get_output_json, REPO_PATH
-
 from .result_analyzer import analyze
 
 with add_path(REPO_PATH):

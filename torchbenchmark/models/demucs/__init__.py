@@ -8,7 +8,6 @@ from torchbenchmark.tasks import OTHER
 
 from ...util.model import BenchmarkModel
 from .demucs.augment import FlipChannels, FlipSign, Remix, Shift
-
 from .demucs.model import Demucs
 
 from torchbenchmark.models.demucs.demucs.model import Demucs

@@ -22,7 +22,6 @@ from ..tb_dcgm_types.gpu_peak_memory import GPUPeakMemory
 from ..tb_dcgm_types.gpu_power_usage import GPUPowerUsage
 from ..tb_dcgm_types.gpu_tensoractive import GPUTensorActive
 from ..tb_dcgm_types.gpu_utilization import GPUUtilization
-
 from . import dcgm_agent, dcgm_field_helpers, dcgm_fields, dcgm_structs as structs
 from .monitor import Monitor
 

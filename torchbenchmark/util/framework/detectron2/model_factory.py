@@ -18,9 +18,9 @@ if not os.path.exists(DATA_DIR):
         DATA_DIR = install_data("coco2017-minimal")
     except Exception:
         pass
-assert os.path.exists(
-    DATA_DIR
-), "Couldn't find coco2017 minimal data dir, please run install.py again."
+assert os.path.exists(DATA_DIR), (
+    "Couldn't find coco2017 minimal data dir, please run install.py again."
+)
 if not "DETECTRON2_DATASETS" in os.environ:
     os.environ["DETECTRON2_DATASETS"] = DATA_DIR
 
@@ -101,9 +101,9 @@ class Detectron2Model(BenchmarkModel):
         torch.backends.cudnn.deterministic = False
         torch.backends.cudnn.benchmark = False
         # load model file
-        assert hasattr(
-            self, "model_file"
-        ), f"Detectron2 models must specify its model_file."
+        assert hasattr(self, "model_file"), (
+            f"Detectron2 models must specify its model_file."
+        )
         if self.model_file and not os.path.exists(self.model_file):
             try:
                 from torchbenchmark.util.framework.fb.installer import (
@@ -114,9 +114,9 @@ class Detectron2Model(BenchmarkModel):
             except Exception:
                 pass
         if self.model_file:
-            assert os.path.exists(
-                self.model_file
-            ), f"Detectron2 model file specified {self.model_file} doesn't exist."
+            assert os.path.exists(self.model_file), (
+                f"Detectron2 model file specified {self.model_file} doesn't exist."
+            )
         parser = default_argument_parser()
         args = parser.parse_args(["--config-file", get_abs_path(variant)])
         # setup pre-trained model weights
@@ -202,9 +202,9 @@ class Detectron2Model(BenchmarkModel):
         self.setup_train()
 
     def enable_fp16(self):
-        assert (
-            self.dargs.precision == "fp16"
-        ), f"Expected precision fp16, get {self.dargs.precision}"
+        assert self.dargs.precision == "fp16", (
+            f"Expected precision fp16, get {self.dargs.precision}"
+        )
         self.model = self.model.half()
         self.example_inputs = prefetch(
             self.example_inputs, self.device, self.dargs.precision

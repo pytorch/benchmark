@@ -52,9 +52,9 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     upload_file_path = Path(args.upload_file)
-    assert (
-        upload_file_path.exists()
-    ), f"Specified result json path {args.upload_file} does not exist."
+    assert upload_file_path.exists(), (
+        f"Specified result json path {args.upload_file} does not exist."
+    )
     date_str = get_date_from_metrics(upload_file_path.stem)
     ub_name = get_ub_name(args.upload_file)
     upload_s3(ub_name, args.userbenchmark_platform, date_str, upload_file_path)

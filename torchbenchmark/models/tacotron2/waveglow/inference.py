@@ -53,7 +53,7 @@ def main(
     if denoiser_strength > 0:
         denoiser = Denoiser(waveglow).cuda()
 
-    for i, file_path in enumerate(mel_files):
+    for file_path in mel_files:
         file_name = os.path.splitext(os.path.basename(file_path))[0]
         mel = torch.load(file_path)
         mel = torch.autograd.Variable(mel.cuda())

@@ -161,16 +161,16 @@ class _TimeoutPIPE:
         # Spawn a loop thread to periodically check the liveness of subprocess
         w_fd = pipe.write_fd
         assert w_fd is not None, "Cannot timeout without write file descriptor."
-        assert (
-            pipe.get_writer_pid() is not None
-        ), "Cannot check process liveness without pid."
+        assert pipe.get_writer_pid() is not None, (
+            "Cannot check process liveness without pid."
+        )
         singleton = cls.singleton()
         with singleton._loop_lock:
             # This will only occur in the case of concurrent reads on different
             # threads (not supported) or a leaked case.
-            assert (
-                w_fd not in singleton._active_reads
-            ), f"{w_fd} is already being watched."
+            assert w_fd not in singleton._active_reads, (
+                f"{w_fd} is already being watched."
+            )
             singleton._active_reads[w_fd] = (
                 timeout,
                 time.time(),
@@ -272,9 +272,7 @@ class Pipe:
         os.write(self.write_fd, packed_msg)
 
     def get_writer_pid(self) -> int:
-        assert (
-            self._writer_pid is not None
-        ), (
+        assert self._writer_pid is not None, (
             "Writer pid is not specified. Maybe calling from child process or input pipe.\
                                               Please report a bug."
         )

@@ -9,7 +9,6 @@ from torchbenchmark.tasks import NLP
 from torchbenchmark.util.framework.transformers.text_classification.args import (
     parse_args,
 )
-
 from torchbenchmark.util.framework.transformers.text_classification.dataset import (
     prep_dataset,
     prep_labels,
@@ -248,7 +247,7 @@ class Model(BenchmarkModel):
                     break
 
             self.model.eval()
-            for step, batch in enumerate(self.eval_dataloader):
+            for batch in self.eval_dataloader:
                 outputs = self.model(**batch)
                 predictions = (
                     outputs.logits.argmax(dim=-1)

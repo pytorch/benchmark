@@ -72,9 +72,9 @@ class S3Client:
 
 
 def decompress_s3_data(s3_tarball_path: Path):
-    assert str(s3_tarball_path.absolute()).endswith(
-        ".tar.gz"
-    ), f"Expected .tar.gz file path but get {s3_tarball_path}."
+    assert str(s3_tarball_path.absolute()).endswith(".tar.gz"), (
+        f"Expected .tar.gz file path but get {s3_tarball_path}."
+    )
     import tarfile
 
     data_dir = os.path.join(REPO_ROOT, "torchbenchmark", "data")
@@ -104,12 +104,12 @@ def checkout_s3_data(data_type: str, name: str, decompress: bool = True):
 
     with open(index_file, "r") as ind:
         index = yaml.safe_load(ind)
-    assert (
-        data_type == "INPUT_TARBALLS" or data_type == "MODEL_PKLS"
-    ), f"Expected data type either INPUT_TARBALLS or MODEL_PKLS, get {data_type}."
-    assert (
-        name in index[data_type]
-    ), f"Cannot find specified file name {name} in {index_file}."
+    assert data_type == "INPUT_TARBALLS" or data_type == "MODEL_PKLS", (
+        f"Expected data type either INPUT_TARBALLS or MODEL_PKLS, get {data_type}."
+    )
+    assert name in index[data_type], (
+        f"Cannot find specified file name {name} in {index_file}."
+    )
     data_file = name
     data_path_segment = (
         f"data/{data_file}" if data_type == "INPUT_TARBALLS" else f"models/{data_file}"

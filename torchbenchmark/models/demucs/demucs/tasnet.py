@@ -227,7 +227,7 @@ class TemporalConvNet(nn.Module):
         bottleneck_conv1x1 = nn.Conv1d(N, B, 1, bias=False)
         # [M, B, K] -> [M, B, K]
         repeats = []
-        for r in range(R):
+        for _ in range(R):
             blocks = []
             for x in range(X):
                 dilation = 2**x

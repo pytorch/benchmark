@@ -3,14 +3,17 @@ PyTorch benchmark env check utils.
 This file may be loaded without torch packages installed, e.g., in OnDemand CI.
 """
 
-import argparse
 import copy
 import logging
 import os
 import shutil
 from collections.abc import Mapping
 from contextlib import contextmanager, ExitStack
-from typing import Any, Dict, List, Optional
+from importlib.metadata import version
+from typing import Dict, List, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import torchbenchmark
 
 
 MAIN_RANDOM_SEED = 1337
@@ -191,14 +194,9 @@ def set_random_seed():
 
 
 def get_pkg_versions(packages: List[str]) -> Dict[str, str]:
-    import subprocess
-    import sys
-
     versions = {}
     for module in packages:
-        cmd = [sys.executable, "-c", f"import {module}; print({module}.__version__)"]
-        version = subprocess.check_output(cmd).decode().strip()
-        versions[module] = version
+        versions[module] = version(module)
     return versions
 
 
@@ -257,7 +255,7 @@ def save_deterministic_dict(name: str):
         torch.backends.cuda.matmul.allow_tf32
     )
 
-    if not name in UNSUPPORTED_USE_DETERMINISTIC_ALGORITHMS:
+    if name not in UNSUPPORTED_USE_DETERMINISTIC_ALGORITHMS:
         torch.use_deterministic_algorithms(True)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.allow_tf32 = False
@@ -449,7 +447,7 @@ def reduce_to_scalar_loss(out):
         return sum([reduce_to_scalar_loss(value) for value in out.values()]) / len(
             out.keys()
         )
-    elif out == None:
+    elif out is None:
         return 0.0
     raise NotImplementedError("Don't know how to reduce", type(out))
 
@@ -696,7 +694,7 @@ def check_accuracy(tbmodel: "torchbenchmark.util.model.BenchmarkModel") -> str:
                 equal_nan=equal_nan,
             ):
                 is_same = False
-        except Exception as e:
+        except Exception:
             # Sometimes torch.allclose may throw RuntimeError
             is_same = False
 
@@ -747,7 +745,7 @@ def check_accuracy(tbmodel: "torchbenchmark.util.model.BenchmarkModel") -> str:
                 tol=tolerance,
             ):
                 is_same = False
-        except Exception as e:
+        except Exception:
             # Sometimes torch.allclose may throw RuntimeError
             is_same = False
 

@@ -1,58 +1,60 @@
 name: TorchBench Nightly Docker Build
+
 on:
   schedule:
     # Push the nightly docker daily at 3 PM UTC
     - cron: '0 15 * * *'
   workflow_dispatch:
-    inputs:
-      nightly_date:
-        description: "PyTorch nightly version"
-        required: false
+  pull_request:
+    path:
+      - .github/workflows/build-nightly-docker.yml
+      - docker/torchbench-nightly.dockerfile
+
 env:
-  WITH_PUSH: "true"
-  CONDA_ENV: "torchbench"
-  DOCKER_IMAGE: "ghcr.io/pytorch/torchbench:latest"
-  SETUP_SCRIPT: "/workspace/setup_instance.sh"
+  DOCKER_IMAGE: 'ghcr.io/pytorch/torchbench:latest'
   HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
 
 jobs:
   build-push-docker:
     if: ${{ github.repository_owner == 'pytorch' }}
-    runs-on: [self-hosted, linux.4xlarge]
+    runs-on: linux.4xlarge
     environment: docker-s3-upload
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
         with:
-          path: benchmark
+          submodules: recursive
+
       - name: Login to GitHub Container Registry
-        if: ${{ env.WITH_PUSH == 'true' }}
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: pytorch
           password: ${{ secrets.TORCHBENCH_ACCESS_TOKEN }}
+
       - name: Build TorchBench nightly docker
+        id: build-torchbench-docker-image
+        shell: bash
         run: |
-          set -x
-          export NIGHTLY_DATE="${{ github.event.inputs.nightly_date }}"
-          cd benchmark/docker
-          full_ref="${{ github.ref }}"
-          prefix="refs/heads/"
-          branch_name=${full_ref#$prefix}
-          docker build . --build-arg TORCHBENCH_BRANCH="${branch_name}" --build-arg FORCE_DATE="${NIGHTLY_DATE}" \
-              -f torchbench-nightly.dockerfile -t ghcr.io/pytorch/torchbench:latest
+          set -eux
+
+          docker build \
+            -f docker/torchbench-nightly.dockerfile \
+            -t ghcr.io/pytorch/torchbench:latest \
+            .
+
           # Extract pytorch version from the docker
-          PYTORCH_VERSION=$(docker run -e SETUP_SCRIPT="${SETUP_SCRIPT}" ghcr.io/pytorch/torchbench:latest bash -c '. "${SETUP_SCRIPT}"; python -c "import torch; print(torch.__version__)"')
-          export DOCKER_TAG=$(awk '{match($0, /dev[0-9]+/, arr); print arr[0]}' <<< "${PYTORCH_VERSION}")
+          PYTORCH_VERSION=$(docker run ghcr.io/pytorch/torchbench:latest bash -c 'python3 -c "import torch; print(torch.__version__)"')
+          PYTORCH_VERSION=$(echo "${PYTORCH_VERSION}" | tail -n1)
+          DOCKER_TAG=$(awk '{match($0, /dev[0-9]+/, arr); print arr[0]}' <<< "${PYTORCH_VERSION}")
+          echo "DOCKER_TAG=$DOCKER_TAG" >> $GITHUB_ENV
+
           docker tag ghcr.io/pytorch/torchbench:latest ghcr.io/pytorch/torchbench:${DOCKER_TAG}
+
       - name: Push docker to remote
-        if: ${{ env.WITH_PUSH == 'true' }}
+        if: ${{ github.event_name != 'pull_request' }}
         run: |
-          # Extract pytorch version from the docker
-          PYTORCH_VERSION=$(docker run -e SETUP_SCRIPT="${SETUP_SCRIPT}" ghcr.io/pytorch/torchbench:latest bash -c '. "${SETUP_SCRIPT}"; python -c "import torch; print(torch.__version__)"')
-          export DOCKER_TAG=$(awk '{match($0, /dev[0-9]+/, arr); print arr[0]}' <<< "${PYTORCH_VERSION}")
-          docker push ghcr.io/pytorch/torchbench:${DOCKER_TAG}
+          docker push ghcr.io/pytorch/torchbench:${{ env.DOCKER_TAG }}
           docker push ghcr.io/pytorch/torchbench:latest
 
 concurrency:

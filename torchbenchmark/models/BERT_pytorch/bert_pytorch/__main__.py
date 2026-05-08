@@ -2,7 +2,6 @@ import random
 
 import numpy as np
 import torch
-
 from bert_pytorch import parse_args
 from torch.utils.data import DataLoader
 

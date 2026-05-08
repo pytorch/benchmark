@@ -25,7 +25,6 @@ from torchrec.optim.keyed import CombinedOptimizer, KeyedOptimizerWrapper
 from torchrec.optim.optimizers import in_backward_optimizer_filter
 
 from ...util.model import BenchmarkModel
-
 from .args import InteractionType, parse_args
 
 

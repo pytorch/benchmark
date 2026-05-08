@@ -73,9 +73,9 @@ def parse_args() -> Tuple[Dict[Any, Any], Dict[Any, Any]]:
 
 def main() -> None:
     args, optim_bm_args = parse_args()
-    assert (
-        not OUTPUT_DIR.exists() or not any(OUTPUT_DIR.glob("*"))
-    ), f"{OUTPUT_DIR} must be empty or nonexistent. Its contents will be wiped by this script."
+    assert not OUTPUT_DIR.exists() or not any(OUTPUT_DIR.glob("*")), (
+        f"{OUTPUT_DIR} must be empty or nonexistent. Its contents will be wiped by this script."
+    )
 
     models = args.models
     if "-c" in optim_bm_args:

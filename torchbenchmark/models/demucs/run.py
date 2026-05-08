@@ -14,7 +14,6 @@ import sys
 import time
 
 import torch as th
-
 from demucs.utils import free_port
 
 
@@ -51,7 +50,7 @@ def main():
                     tasks.remove(task)
                     if exitcode:
                         print(
-                            f"Task {task.rank} died with exit code " f"{exitcode}",
+                            f"Task {task.rank} died with exit code {exitcode}",
                             file=sys.stderr,
                         )
                         failed = True

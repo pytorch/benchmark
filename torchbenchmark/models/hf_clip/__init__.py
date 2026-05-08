@@ -6,7 +6,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from PIL import Image
-
 from transformers import CLIPModel, CLIPProcessor
 
 from ...util.model import BenchmarkModel
@@ -19,9 +18,9 @@ class ContrastiveLossWithTemperature(nn.Module):
 
     def forward(self, image_embeddings, text_embeddings):
         # Ensure batch sizes are equal
-        assert image_embeddings.size(0) == text_embeddings.size(
-            0
-        ), "Batch sizes of image and text embeddings should be the same"
+        assert image_embeddings.size(0) == text_embeddings.size(0), (
+            "Batch sizes of image and text embeddings should be the same"
+        )
 
         # Compute the similarity between image and text embeddings
         logits = torch.matmul(image_embeddings, text_embeddings.T) / self.temperature

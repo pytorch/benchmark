@@ -34,9 +34,9 @@ if not os.path.exists(DATA_DIR):
         DATA_DIR = os.path.join(install_data("coco128"), "coco128")
     except Exception:
         pass
-assert os.path.exists(
-    DATA_DIR
-), f"Couldn't find coco128 data dir: {DATA_DIR}, please run install.py again."
+assert os.path.exists(DATA_DIR), (
+    f"Couldn't find coco128 data dir: {DATA_DIR}, please run install.py again."
+)
 
 
 class Model(BenchmarkModel):

@@ -1,5 +1,4 @@
 import torch
-
 from dalle2_pytorch import (
     DALLE2,
     Decoder,

@@ -10,9 +10,9 @@ def check_data_dir():
     tacotron2_data_dir = os.path.join(
         current_dir.parent.parent, "data", ".data", "tacotron2-minimal"
     )
-    assert os.path.exists(
-        tacotron2_data_dir
-    ), "Couldn't find tacotron2 minimal data dir, please run install.py again."
+    assert os.path.exists(tacotron2_data_dir), (
+        "Couldn't find tacotron2 minimal data dir, please run install.py again."
+    )
 
 
 if __name__ == "__main__":

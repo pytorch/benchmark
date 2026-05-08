@@ -10,7 +10,6 @@ from ..utils import (
     IGNORE_ID,
     pad_list,
 )
-
 from .attention import MultiHeadAttention
 from .module import PositionalEncoding, PositionwiseFeedForward
 

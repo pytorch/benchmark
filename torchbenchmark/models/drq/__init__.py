@@ -10,7 +10,6 @@ from torchbenchmark.tasks import REINFORCEMENT_LEARNING
 from ...util.model import BenchmarkModel
 from .config import DRQConfig
 from .drq import DRQAgent
-
 from .drqutils import eval_mode, FrameStack, set_seed_everywhere
 from .replay_buffer import ReplayBuffer
 

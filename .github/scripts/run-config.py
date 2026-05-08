@@ -15,7 +15,6 @@ from pathlib import Path
 from typing import List, Optional
 
 import yaml
-
 from bmutils import add_path
 from bmutils.summarize import analyze_result
 
@@ -59,7 +58,9 @@ def get_models(config) -> Optional[str]:
         r = re.compile(model_pattern)
         matched_models = list(filter(lambda x: r.match(x), models))
         enabled_models.extend(matched_models)
-    assert enabled_models, f"The model patterns you specified {config['models']} does not match any model. Please double check."
+    assert enabled_models, (
+        f"The model patterns you specified {config['models']} does not match any model. Please double check."
+    )
     return enabled_models
 
 
@@ -185,9 +186,9 @@ def check_env(bmconfigs):
                 cuda_path = Path("/").joinpath(
                     "usr", "local", f"cuda-{bmconfig.cuda_version}"
                 )
-                assert (
-                    cuda_path.exists() and cuda_path.is_dir()
-                ), f"Expected CUDA path {str(cuda_path)} doesn't exist. Please report a bug."
+                assert cuda_path.exists() and cuda_path.is_dir(), (
+                    f"Expected CUDA path {str(cuda_path)} doesn't exist. Please report a bug."
+                )
 
 
 if __name__ == "__main__":

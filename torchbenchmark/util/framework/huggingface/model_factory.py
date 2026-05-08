@@ -5,7 +5,6 @@ from contextlib import nullcontext
 from typing import Tuple
 
 import torch
-
 import torch.nn as nn
 from torchbenchmark.tasks import NLP
 from torchbenchmark.util.model import BenchmarkModel
@@ -83,6 +82,10 @@ class HuggingFaceModel(BenchmarkModel):
         else:
             assert False, f"Huggingface model {name} is not supported yet."
 
+        # Turning off kv cache for torchbench models
+        if hasattr(self.model, "config") and hasattr(self.model.config, "use_cache"):
+            self.model.config.use_cache = False
+
         if is_training:
             self.model.train()
         else:
@@ -130,8 +133,20 @@ class HuggingFaceModel(BenchmarkModel):
 
 
 class HuggingFaceAuthMixin:
+    """Mixin class that validates Hugging Face Hub authentication.
+
+    This mixin enforces that the HUGGING_FACE_HUB_TOKEN environment variable
+    is set before model initialization, which is required to download gated
+    models (e.g., LLaMA, CodeLLaMA) from Hugging Face Hub. Mix this into
+    benchmark model classes that need authenticated access to Hugging Face
+    model weights.
+
+    Raises:
+        NotImplementedError: If HUGGING_FACE_HUB_TOKEN is not set in environment.
+    """
+
     def __init__(self):
-        if not "HUGGING_FACE_HUB_TOKEN" in os.environ:
+        if "HUGGING_FACE_HUB_TOKEN" not in os.environ:
             raise NotImplementedError(
                 "Make sure to set `HUGGING_FACE_HUB_TOKEN` so you can download weights"
             )

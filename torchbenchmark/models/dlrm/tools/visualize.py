@@ -70,9 +70,7 @@ import numpy as np
 import torch
 import umap
 from dlrm_s_pytorch import DLRM_Net
-
 from sklearn import manifold
-
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 
 

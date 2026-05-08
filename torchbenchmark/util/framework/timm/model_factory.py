@@ -57,7 +57,8 @@ class TimmModel(BenchmarkModel):
 
     def get_input_iter(self):
         """Yield randomized batch size of inputs."""
-        import math, random
+        import math
+        import random
 
         n = int(math.log2(self.batch_size))
         buckets = [2**n for n in range(n)]

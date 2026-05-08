@@ -75,7 +75,9 @@ def analyze_workload(run_dir: Path, workload_name: str, res):
     assert (
         workload_dir.joinpath("result.log").exists()
         and workload_dir.joinpath("result_mem.log").exists()
-    ), f"Error: missing benchmark result file result.log or result_mem.log in {workload_dir}."
+    ), (
+        f"Error: missing benchmark result file result.log or result_mem.log in {workload_dir}."
+    )
     LATENCY_REGEX = "Total time elapsed: (.*) seconds."
     with open(workload_dir.joinpath("result.log"), "r") as lf:
         latency_log = lf.readlines()[-1].strip()

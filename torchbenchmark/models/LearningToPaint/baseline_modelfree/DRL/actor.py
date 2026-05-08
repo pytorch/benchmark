@@ -11,9 +11,9 @@ def conv3x3(in_planes, out_planes, stride=1):
 
 def cfg(depth):
     depth_lst = [18, 34, 50, 101, 152]
-    assert (
-        depth in depth_lst
-    ), "Error : Resnet depth should be either 18, 34, 50, 101, 152"
+    assert depth in depth_lst, (
+        "Error : Resnet depth should be either 18, 34, 50, 101, 152"
+    )
     cf_dict = {
         "18": (BasicBlock, [2, 2, 2, 2]),
         "34": (BasicBlock, [3, 4, 6, 3]),

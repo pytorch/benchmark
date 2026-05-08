@@ -14,18 +14,18 @@ def check_env(bisection_root: str):
     # result.json exists
     bisection_path = Path(bisection_root)
     assert os.environ["GITHUB_ENV"], f"GITHUB_ENV environment variable doesn't exist."
-    assert (
-        bisection_path.is_dir()
-    ), f"Specified bisection root {bisection_path} is not a directory."
-    assert (
-        bisection_path.joinpath("gh-issue.md").exists()
-    ), f"Bisection directory {bisection_path} doesn't contain file gh-issue.md."
-    assert (
-        bisection_path.joinpath("result.json").exists()
-    ), f"Bisection directory {bisection_path} doesn't contain file result.json."
-    assert (
-        bisection_path.joinpath("config.yaml").exists()
-    ), f"Bisection directory {bisection_path} doesn't contain file config.yaml."
+    assert bisection_path.is_dir(), (
+        f"Specified bisection root {bisection_path} is not a directory."
+    )
+    assert bisection_path.joinpath("gh-issue.md").exists(), (
+        f"Bisection directory {bisection_path} doesn't contain file gh-issue.md."
+    )
+    assert bisection_path.joinpath("result.json").exists(), (
+        f"Bisection directory {bisection_path} doesn't contain file result.json."
+    )
+    assert bisection_path.joinpath("config.yaml").exists(), (
+        f"Bisection directory {bisection_path} doesn't contain file config.yaml."
+    )
 
 
 def setup_gh_issue(bisection_root: str, gh_workflow_id: str):

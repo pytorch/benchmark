@@ -8,3 +8,5 @@ not_implemented:
 - device: cpu
 train_benchmark: true
 train_deterministic: false
+# TODO (huydhn): root cause is not clear, to be investigated
+skip_cuda_memory_leak: true

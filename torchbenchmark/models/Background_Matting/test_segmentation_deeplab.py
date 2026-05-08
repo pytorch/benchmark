@@ -1,9 +1,10 @@
-import argparse, cv2, glob
+import argparse
+import glob
 import os
 import tarfile
 
+import cv2
 import numpy as np
-
 import tensorflow as tf
 from PIL import Image
 from six.moves import urllib

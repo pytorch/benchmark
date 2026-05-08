@@ -75,7 +75,6 @@ from . import dlrm_data_pytorch as dp
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
 import onnx
-
 import sklearn.metrics
 
 # pytorch
@@ -84,7 +83,6 @@ import torch.nn as nn
 from torch.nn.parallel.parallel_apply import parallel_apply
 from torch.nn.parallel.replicate import replicate
 from torch.nn.parallel.scatter_gather import gather, scatter
-
 # from torchviz import make_dot
 # import torch.nn.functional as Functional
 # from torch.nn.parameter import Parameter

@@ -181,6 +181,9 @@ def _load_tests():
         # api, enable after PyTorch 1.13 release
         if "quantized" in path:
             continue
+        # https://github.com/pytorch/pytorch/issues/167895
+        if "stable_diffusion" in path:
+            continue
         for device in devices:
             _load_test(path, device)
 

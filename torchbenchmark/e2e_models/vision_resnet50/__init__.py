@@ -1,6 +1,5 @@
 # upstream repo: https://github.com/kuangliu/pytorch-cifar
 import os
-
 from pathlib import Path
 
 import torch

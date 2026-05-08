@@ -13,7 +13,6 @@ from torchbenchmark import DATA_PATH
 from torchbenchmark.tasks import COMPUTER_VISION
 
 from ...util.model import BenchmarkModel
-
 from .data_loader import VideoData
 from .functions import compose_image_withshift, write_tb_log
 from .loss_functions import alpha_gradient_loss, alpha_loss, compose_loss, GANloss

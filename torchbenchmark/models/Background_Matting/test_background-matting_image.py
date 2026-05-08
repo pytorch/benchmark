@@ -1,10 +1,13 @@
 from __future__ import print_function
 
-import argparse, cv2, glob, os
+import argparse
+import glob
+import os
+
+import cv2
 
 # import matplotlib.pyplot as plt
 import numpy as np
-
 import torch
 import torch.backends.cudnn as cudnn
 import torch.nn as nn

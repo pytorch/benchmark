@@ -144,9 +144,9 @@ class Model(E2EBenchmarkModel):
         # Initialize the accelerator. We will let the accelerator handle device placement for us in this example.
         if hf_args.distributed == "deepspeed":
             # Note: self.tb_args.fp16 could be renamed to better clarify its meaning
-            assert (
-                self.tb_args.fp16 == "amp"
-            ), "deepspeed is only supported with bf16/amp enabled"
+            assert self.tb_args.fp16 == "amp", (
+                "deepspeed is only supported with bf16/amp enabled"
+            )
             accelerator = Accelerator(
                 deepspeed_plugin=hf_args.deepspeed_plugin, mixed_precision="bf16"
             )
@@ -438,7 +438,7 @@ class Model(E2EBenchmarkModel):
 
                 if isinstance(self.hf_args.checkpointing_steps, int):
                     if completed_steps % self.hf_args.checkpointing_steps == 0:
-                        output_dir = f"step_{completed_steps }"
+                        output_dir = f"step_{completed_steps}"
                         if self.hf_args.output_dir is not None:
                             output_dir = os.path.join(
                                 self.hf_args.output_dir, output_dir

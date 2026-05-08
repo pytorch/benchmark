@@ -538,7 +538,7 @@ class _PrintableStructure(_DcgmStructure):
 
     def FieldsSizeof(self):
         size = 0
-        for s, t in self._fields_:
+        for _, t in self._fields_:
             size = size + sizeof(t)
         return size
 
@@ -548,7 +548,7 @@ class DcgmJSONEncoder(json.JSONEncoder):
     def default(self, o):  # pylint: disable=method-hidden
         if isinstance(o, _PrintableStructure):
             retVal = {}
-            for fieldName, fieldType in o._fields_:
+            for fieldName, _ in o._fields_:
                 subObj = getattr(o, fieldName)
                 if isinstance(subObj, _PrintableStructure):
                     subObj = self.default(subObj)
@@ -560,7 +560,7 @@ class DcgmJSONEncoder(json.JSONEncoder):
             retVal = []
             for i in range(len(o)):
                 subVal = {}
-                for fieldName, fieldType in o[i]._fields_:
+                for fieldName, _ in o[i]._fields_:
                     subObj = getattr(o[i], fieldName)
                     if isinstance(subObj, _PrintableStructure):
                         subObj = self.default(subObj)

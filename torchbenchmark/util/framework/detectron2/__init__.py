@@ -28,9 +28,9 @@ MODEL_WEIGHTS_MAP = {
 
 
 def install_model_weights(model_name, model_dir):
-    assert (
-        model_name in MODEL_WEIGHTS_MAP
-    ), f"Model {model_name} is not in MODEL_WEIGHTS_MAP. Cannot download the model weights file."
+    assert model_name in MODEL_WEIGHTS_MAP, (
+        f"Model {model_name} is not in MODEL_WEIGHTS_MAP. Cannot download the model weights file."
+    )
     model_full_path = Path(os.path.join(model_dir, ".data", f"{model_name}.pkl"))
     if model_name in MODEL_WEIGHTS_MAP and MODEL_WEIGHTS_MAP[model_name]:
         # download the file if not exists

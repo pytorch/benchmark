@@ -52,12 +52,12 @@ def run_commit(
 def validate_benchmark_output(bm_output: Path, bm_name: str):
     with open(bm_output, "r") as bmobj:
         output = json.load(bmobj)
-    assert (
-        output["name"] == bm_name
-    ), f"Expected benchmark name {bm_name}, getting {output['name']}."
-    assert (
-        "environ" in output and "pytorch_git_version" in output["environ"]
-    ), f"Missing pytorch git version in {bm_output}."
+    assert output["name"] == bm_name, (
+        f"Expected benchmark name {bm_name}, getting {output['name']}."
+    )
+    assert "environ" in output and "pytorch_git_version" in output["environ"], (
+        f"Missing pytorch git version in {bm_output}."
+    )
     assert "metrics" in output, f"Missing definition of metrics in {bm_output}."
 
 
@@ -138,17 +138,17 @@ def process_test_result(result_a: Path, result_b: Path, output_dir: str) -> str:
         return sorted(metrics) == sorted(b["metrics"])
 
     # check two results are different files
-    assert (
-        not result_a == result_b
-    ), f"Path {result_a} and {result_b} are the same. Exit."
+    assert not result_a == result_b, (
+        f"Path {result_a} and {result_b} are the same. Exit."
+    )
     # validate results
     with open(result_a, "r") as fa:
         a = json.load(fa)
     with open(result_b, "r") as fb:
         b = json.load(fb)
-    assert validate_results(
-        a, b
-    ), f"Result validation failed for {result_a} and {result_b}."
+    assert validate_results(a, b), (
+        f"Result validation failed for {result_a} and {result_b}."
+    )
     # print result in csv format
     header = [
         "Metric",
@@ -195,11 +195,13 @@ if __name__ == "__main__":
         f"but you specified {args.userbenchmark}."
     )
     if not args.skip_build:
-        assert Path(
-            args.pytorch_repo
-        ).is_dir(), f"Specified PyTorch repo dir {args.pytorch_repo} doesn't exist."
+        assert Path(args.pytorch_repo).is_dir(), (
+            f"Specified PyTorch repo dir {args.pytorch_repo} doesn't exist."
+        )
         commits = gitutils.get_git_commits(args.pytorch_repo, args.base, args.head)
-        assert commits, f"Can't find git commit {args.base} or {args.head} in repo {args.pytorch_repo}"
+        assert commits, (
+            f"Can't find git commit {args.base} or {args.head} in repo {args.pytorch_repo}"
+        )
     # setup cuda environment
     cuda_env = prepare_cuda_env(cuda_version=DEFAULT_CUDA_VERSION)
     result_a = run_commit(

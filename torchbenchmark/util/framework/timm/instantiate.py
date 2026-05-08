@@ -32,7 +32,6 @@ from timm.loss import (
     LabelSmoothingCrossEntropy,
     SoftTargetCrossEntropy,
 )
-
 from timm.models import create_model
 from timm.optim import create_optimizer_v2, optimizer_kwargs
 from timm.scheduler import create_scheduler

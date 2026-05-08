@@ -175,9 +175,9 @@ def upload_metrics_to_scribe(s3, benchmark_name, index, work_dir):
     """
     try:
         for index_key in index:
-            assert (
-                "uploaded-scribe" in index[index_key]
-            ), f"Index key {index_key} missing field uploaded-scribe!"
+            assert "uploaded-scribe" in index[index_key], (
+                f"Index key {index_key} missing field uploaded-scribe!"
+            )
         index_file_path = work_dir.joinpath(INDEX_FILE_NAME)
         with open(index_file_path, "w") as index_file:
             yaml.safe_dump(index, index_file)
@@ -188,9 +188,9 @@ def upload_metrics_to_scribe(s3, benchmark_name, index, work_dir):
             # download the metrics file from S3 to work_dir
             print(f"Downloading metrics file {upload_metrics} to local.")
             metrics_key = s3.exists(prefix=None, file_name=upload_metrics)
-            assert (
-                metrics_key
-            ), f"Expected metrics file {upload_metrics} does not exist."
+            assert metrics_key, (
+                f"Expected metrics file {upload_metrics} does not exist."
+            )
             s3.download_file(metrics_key, work_dir)
             # upload it to scribe
             print(f"Uploading metrics file {upload_metrics} to scribe.")
@@ -236,7 +236,9 @@ def run_aicluster_benchmark(
     index = get_metrics_index(s3, benchmark_name, work_dir)
     # if the previous run is not successful, exit immediately
     if check_success and not determine_success_today(index):
-        assert False, f"Don't find the last successful run in index: { index }. Please report a bug."
+        assert False, (
+            f"Don't find the last successful run in index: {index}. Please report a bug."
+        )
     # upload to scribe by the index
     if upload_scribe:
         upload_metrics_to_scribe(s3, benchmark_name, index, work_dir)

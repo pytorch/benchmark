@@ -8,7 +8,6 @@ import numpy as np
 import torch
 from segment_anything_fast.build_sam import sam_model_fast_registry
 from segment_anything_fast.predictor import SamPredictor
-
 from torchbenchmark import DATA_PATH
 from torchbenchmark.tasks import COMPUTER_VISION
 
@@ -32,9 +31,9 @@ class Model(BenchmarkModel):
         self.model = sam_model_fast_registry[model_type](checkpoint=sam_checkpoint)
         self.model.to(device=device)
         image_path = os.path.join(DATA_PATH, "sam_inputs", "truck.jpg")
-        assert os.path.exists(
-            image_path
-        ), f"Expected image file exists at {image_path} but not found."
+        assert os.path.exists(image_path), (
+            f"Expected image file exists at {image_path} but not found."
+        )
         self.image = cv2.imread(image_path)
         self.image = cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB)
         self.sample_image = torch.randn((3, 256, 256)).to(device)

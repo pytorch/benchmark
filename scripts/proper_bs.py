@@ -59,9 +59,9 @@ def _run_model_test_proper_bs(
     batch_size: Optional[int],
     extra_args: List[str],
 ) -> ModelTestResult:
-    assert (
-        test == "train" or test == "eval"
-    ), f"Test must be either 'train' or 'eval', but get {test}."
+    assert test == "train" or test == "eval", (
+        f"Test must be either 'train' or 'eval', but get {test}."
+    )
     result = ModelTestResult(
         name=model_path.name,
         test=test,

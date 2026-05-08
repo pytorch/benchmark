@@ -39,9 +39,9 @@ def prep_data(args):
         nbatches = args.num_batches if args.num_batches > 0 else len(train_ld)
         nbatches_test = len(test_ld)
     nbatches_in_use = nbatches_test if args.inference_only else nbatches
-    assert (
-        nbatches_in_use > args.warmup_steps
-    ), f"Change --warmup-steps={args.warmup_steps} to be lower than {nbatches_in_use}."
+    assert nbatches_in_use > args.warmup_steps, (
+        f"Change --warmup-steps={args.warmup_steps} to be lower than {nbatches_in_use}."
+    )
 
     args.ln_emb = ln_emb.tolist()
 

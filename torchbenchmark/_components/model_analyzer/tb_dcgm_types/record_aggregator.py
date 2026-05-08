@@ -16,7 +16,6 @@ import itertools
 from collections import defaultdict
 
 from .da_exceptions import TorchBenchAnalyzerException
-
 from .record import Record
 
 

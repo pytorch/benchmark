@@ -255,7 +255,7 @@ def DoTrainEval(encoder, evaluation_data_layer, device):
     encoder.eval()
     denom = 0.0
     total_epoch_loss = 0.0
-    for i, (eval, src) in enumerate(evaluation_data_layer.iterate_one_epoch_eval()):
+    for eval, src in evaluation_data_layer.iterate_one_epoch_eval():
         inputs = Variable(src.to(device).to_dense())
         targets = Variable(eval.to(device).to_dense())
         outputs = encoder(inputs)

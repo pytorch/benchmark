@@ -1,6 +1,5 @@
 import numpy as np
 import torch
-
 import torch.nn as nn
 from Renderer.model import FCN
 from Renderer.stroke_gen import *
@@ -52,7 +51,7 @@ while step < 100:
     net.train()
     train_batch = []
     ground_truth = []
-    for i in range(batch_size):
+    for _ in range(batch_size):
         f = np.random.uniform(0, 1, 10)
         train_batch.append(f)
         ground_truth.append(draw(f))
