@@ -131,7 +131,7 @@ class Monitor:
         self.jobs.append(Job(sid=sid, name=name, args=args))
 
     def gc(self):
-        names = set(job.name for job in self.jobs)
+        names = {job.name for job in self.jobs}
         for f in logs.iterdir():
             stem, suffix = f.name.rsplit(".", 1)
             if suffix == "sid":
