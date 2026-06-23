@@ -96,7 +96,7 @@ class Model(BenchmarkModel):
             ]
         ):
             self.meta_inputs = torch.load(
-                f"{root}/maml_omniglot/batch.pt", weights_only=True
+                f"{root}/maml_omniglot/batch.pt", weights_only=False
             )
         self.meta_inputs = tuple(
             [torch.from_numpy(i).to(self.device) for i in self.meta_inputs]

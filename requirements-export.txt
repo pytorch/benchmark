@@ -1,0 +1,22 @@
+# Requirements for batch-exporting torchbench models to .pt2, .onnx, and .tflite
+#
+# Install into a Python 3.12+ venv:
+#   python -m venv .venv && source .venv/bin/activate
+#   pip install -r requirements-export.txt
+#   pip install -e .   # install torchbenchmark itself
+
+# Core
+torch>=2.11
+pyyaml
+
+# For transformers/timm models
+transformers
+timm
+torch_geometric
+
+# ONNX export
+onnx
+onnxruntime
+
+# LiteRT export (optional — skip if only exporting to .pt2/.onnx)
+litert-torch

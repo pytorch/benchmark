@@ -1,0 +1,63 @@
+name,family,status,elapsed_s,out_path,error
+alexnet,vision,PASS,,,
+densenet121,vision,PASS,,,
+mnasnet1_0,vision,PASS,,,
+mobilenet_v2,vision,PASS,,,
+mobilenet_v3_large,vision,PASS,,,
+resnet18,vision,PASS,,,
+resnet50,vision,PASS,,,
+resnet152,vision,PASS,,,
+resnext50_32x4d,vision,PASS,,,
+shufflenet_v2_x1_0,vision,PASS,,,
+squeezenet1_1,vision,PASS,,,
+vgg16,vision,PASS,,,
+timm_efficientnet,timm,PASS,,,
+timm_nfnet,timm,PASS,,,
+timm_regnet,timm,PASS,,,
+timm_resnest,timm,PASS,,,
+timm_vision_transformer,timm,PASS,,,
+timm_vision_transformer_large,timm,PASS,,,
+timm_vovnet,timm,PASS,,,
+hf_Albert,transformers,PASS,,,
+hf_Bart,transformers,PASS,,,
+hf_Bert,transformers,PASS,,,
+hf_Bert_large,transformers,PASS,,,
+hf_BigBird,transformers,PASS,,,
+hf_DistilBert,transformers,PASS,,,
+hf_GPT2,transformers,PASS,,,
+hf_GPT2_large,transformers,PASS,,,
+hf_Reformer,transformers,FAIL,2.7,,RuntimeError: scatter(): Expected self.dtype to be equal to src.dtype
+hf_Roberta_base,transformers,PASS,,,
+hf_T5,transformers,PASS,,,
+hf_T5_base,transformers,PASS,,,
+hf_T5_large,transformers,PASS,,,
+hf_Whisper,transformers,PASS,,,
+hf_distil_whisper,transformers,PASS,,,
+llava,transformers,PASS,392.6,/local-ssd/sayans/Softwares/pytorch-benchmark/exported_litert/llava.tflite,25706.3MB
+moondream,transformers,PASS,,,
+phi_1_5,transformers,FAIL,42.8,,ValueError: Failed to run converter passes: expects operand and result to have compatible element type. Got: 'tensor<512xf32>' and 'tensor<1x512x2048xf16>'
+phi_2,transformers,FAIL,277.3,,ValueError: Failed to run converter passes: expects operand and result to have compatible element type. Got: 'tensor<512xf32>' and 'tensor<1x512x2560xf16>'
+mistral_7b_instruct,transformers,FAIL,316.9,,TypeError: Got unsupported ScalarType BFloat16
+basic_gnn_edgecnn,pyg,PASS,,,
+basic_gnn_gin,pyg,PASS,,,
+basic_gnn_sage,pyg,PASS,,,
+sage,pyg,PASS,,,
+nanogpt,generative,PASS,,,
+pytorch_CycleGAN_and_pix2pix,generative,FAIL,4.3,,NotImplementedError: Output padding on convolution is not implemented.
+pytorch_stargan,generative,PASS,,,
+Dcgan,generative,PASS,,,
+dlrm,recsys,FAIL,4.5,,RuntimeError: Lowering not found: aten._embedding_bag.default
+nvidia_deeprecommender,recsys,PASS,,,
+maml_omniglot,meta_learning,PASS,,,
+functorch_dp_cifar10,misc,PASS,,,
+functorch_maml_omniglot,misc,PASS,,,
+BERT_pytorch,transformers,PASS,,,
+LearningToPaint,rl,PASS,,,
+demucs,audio,PASS,,,
+phlippe_densenet,vision,PASS,,,
+phlippe_resnet,vision,PASS,,,
+doctr_det_predictor,vision,PASS,,,
+doctr_reco_predictor,vision,PASS,,,
+pyhpc_equation_of_state,hpc,FAIL,2.7,,ValueError: Failed to run converter passes: failed to legalize operation 'tfl.div' on tensor<f64>
+pyhpc_isoneutral_mixing,hpc,FAIL,8.4,,ValueError: Failed to run converter passes: failed to legalize operation 'tfl.strided_slice' on tensor<f64>
+pyhpc_turbulent_kinetic_energy,hpc,FAIL,8.6,,RuntimeError: Lowering not found: aten.empty_permuted.default

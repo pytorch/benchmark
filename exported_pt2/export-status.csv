@@ -1,0 +1,111 @@
+name,family,status,elapsed_s,out_path,error
+alexnet,vision,PASS,,,
+densenet121,vision,PASS,,,
+mnasnet1_0,vision,PASS,,,
+mobilenet_v2,vision,PASS,,,
+mobilenet_v3_large,vision,PASS,,,
+resnet18,vision,PASS,,,
+resnet50,vision,PASS,,,
+resnet152,vision,PASS,,,
+resnext50_32x4d,vision,PASS,,,
+shufflenet_v2_x1_0,vision,PASS,,,
+squeezenet1_1,vision,PASS,,,
+vgg16,vision,PASS,,,
+vision_maskrcnn,vision,FAIL,3.1,,GuardOnDataDependentSymNode: Could not guard on data-dependent expression 4*u1 > 4000 (unhinted: 4*u1 > 4000).  (Size-like symbols: u1)
+timm_efficientnet,timm,PASS,,,
+timm_nfnet,timm,PASS,,,
+timm_regnet,timm,PASS,,,
+timm_resnest,timm,PASS,,,
+timm_vision_transformer,timm,PASS,,,
+timm_vision_transformer_large,timm,PASS,,,
+timm_vovnet,timm,PASS,,,
+timm_efficientdet,timm,SKIP,,,model code forces CUDA
+hf_Albert,transformers,PASS,,,
+hf_Bart,transformers,PASS,,,
+hf_Bert,transformers,PASS,,,
+hf_Bert_large,transformers,PASS,,,
+hf_BigBird,transformers,PASS,,,
+hf_DistilBert,transformers,PASS,,,
+hf_GPT2,transformers,PASS,6.6,/local-ssd/sayans/Softwares/pytorch-benchmark/exported_pt2/hf_GPT2.pt2,
+hf_GPT2_large,transformers,PASS,15.6,/local-ssd/sayans/Softwares/pytorch-benchmark/exported_pt2/hf_GPT2_large.pt2,
+hf_Longformer,transformers,FAIL,0.9,,"GuardOnDataDependentSymNode: Could not guard on data-dependent expression Eq(u0, 1) (unhinted: Eq(u0, 1)).  (Size-like symbols: none)"
+hf_Reformer,transformers,PASS,,,
+hf_Roberta_base,transformers,PASS,,,
+hf_T5,transformers,PASS,,,
+hf_T5_base,transformers,PASS,,,
+hf_T5_large,transformers,PASS,,,
+hf_Whisper,transformers,PASS,,,
+hf_distil_whisper,transformers,PASS,,,
+llama_v2_7b_16h,transformers,SKIP,,,requires HF gated llama-2 weights
+llava,transformers,PASS,106.9,/local-ssd/sayans/Softwares/pytorch-benchmark/exported_pt2/llava.pt2,
+moondream,transformers,PASS,,,
+codellama,transformers,SKIP,,,requires HF gated codellama weights
+phi_1_5,transformers,PASS,34.6,/local-ssd/sayans/Softwares/pytorch-benchmark/exported_pt2/phi_1_5.pt2,
+phi_2,transformers,PASS,60.2,/local-ssd/sayans/Softwares/pytorch-benchmark/exported_pt2/phi_2.pt2,
+hf_MPT_7b_instruct,transformers,SKIP,,,mosaicml/mpt-7b-instruct repo no longer accessible on HF
+orca_2,transformers,SKIP,,,requires HF gated msft/orca-2 weights
+mistral_7b_instruct,transformers,PASS,122.1,/local-ssd/sayans/Softwares/pytorch-benchmark/exported_pt2/mistral_7b_instruct.pt2,
+llama_v31_8b,transformers,SKIP,,,requires HF gated meta-llama weights
+llama_v2_7b,transformers,SKIP,,,requires HF gated llama-2 weights
+llama_v2_13b,transformers,SKIP,,,gated + 26 GB weights
+llama_v2_70b,transformers,SKIP,,,gated + 130 GB weights
+hf_Yi,transformers,SKIP,,,gated + huge
+hf_mixtral,transformers,SKIP,,,gated + 90 GB MoE weights
+detectron2_fasterrcnn_r_101_c4,detectron2,FAIL,3.1,,GuardOnDataDependentSymNode: Could not guard on data-dependent expression u1 + 806 < 7 (unhinted: u1 + 806 < 7).  (Size-like symbols: none)
+detectron2_fasterrcnn_r_101_dc5,detectron2,FAIL,2.5,,GuardOnDataDependentSymNode: Could not guard on data-dependent expression u1 + 806 < 7 (unhinted: u1 + 806 < 7).  (Size-like symbols: none)
+detectron2_fasterrcnn_r_101_fpn,detectron2,FAIL,3.5,,GuardOnDataDependentSymNode: Could not guard on data-dependent expression u1 + 806 < 7 (unhinted: u1 + 806 < 7).  (Size-like symbols: none)
+detectron2_fasterrcnn_r_50_c4,detectron2,FAIL,0.9,,GuardOnDataDependentSymNode: Could not guard on data-dependent expression u1 + 806 < 7 (unhinted: u1 + 806 < 7).  (Size-like symbols: none)
+detectron2_fasterrcnn_r_50_dc5,detectron2,FAIL,1.6,,GuardOnDataDependentSymNode: Could not guard on data-dependent expression u1 + 806 < 7 (unhinted: u1 + 806 < 7).  (Size-like symbols: none)
+detectron2_fasterrcnn_r_50_fpn,detectron2,FAIL,0.9,,GuardOnDataDependentSymNode: Could not guard on data-dependent expression u1 + 806 < 7 (unhinted: u1 + 806 < 7).  (Size-like symbols: none)
+detectron2_fcos_r_50_fpn,detectron2,FAIL,0.8,,GuardOnDataDependentSymNode: Could not guard on data-dependent expression u1 + 806 < 7 (unhinted: u1 + 806 < 7).  (Size-like symbols: none)
+detectron2_maskrcnn,detectron2,FAIL,0.9,,GuardOnDataDependentSymNode: Could not guard on data-dependent expression u1 + 806 < 7 (unhinted: u1 + 806 < 7).  (Size-like symbols: none)
+detectron2_maskrcnn_r_101_c4,detectron2,FAIL,1.0,,GuardOnDataDependentSymNode: Could not guard on data-dependent expression u1 + 806 < 7 (unhinted: u1 + 806 < 7).  (Size-like symbols: none)
+detectron2_maskrcnn_r_101_fpn,detectron2,FAIL,1.0,,GuardOnDataDependentSymNode: Could not guard on data-dependent expression u1 + 806 < 7 (unhinted: u1 + 806 < 7).  (Size-like symbols: none)
+detectron2_maskrcnn_r_50_c4,detectron2,FAIL,0.9,,GuardOnDataDependentSymNode: Could not guard on data-dependent expression u1 + 806 < 7 (unhinted: u1 + 806 < 7).  (Size-like symbols: none)
+detectron2_maskrcnn_r_50_fpn,detectron2,FAIL,0.9,,GuardOnDataDependentSymNode: Could not guard on data-dependent expression u1 + 806 < 7 (unhinted: u1 + 806 < 7).  (Size-like symbols: none)
+basic_gnn_edgecnn,pyg,PASS,,,
+basic_gnn_gcn,pyg,FAIL,1.0,,RuntimeError: Creating a new Tensor subclass EdgeIndex but the raw Tensor object is already associated to a python object of type FakeTensor which is not a subclass of the requested type
+basic_gnn_gin,pyg,PASS,,,
+basic_gnn_sage,pyg,PASS,,,
+gat,pyg,SKIP,,,GATConv wraps edge_index as EdgeIndex subclass during tracing — clashes with FakeTensor (same as basic_gnn_gcn)
+gcn,pyg,SKIP,,,GCNConv wraps edge_index as EdgeIndex subclass during tracing — clashes with FakeTensor (same as basic_gnn_gcn)
+sage,pyg,PASS,,,
+sam,generative,SKIP,,,needs torchbenchmark.util.framework.fb (Meta-internal)
+sam_fast,generative,SKIP,,,needs triton (no CPU wheel for torch 2.11)
+nanogpt,generative,PASS,,,
+stable_diffusion_text_encoder,generative,SKIP,,,requires HUGGING_FACE_HUB_TOKEN for gated stability-ai weights
+stable_diffusion_unet,generative,SKIP,,,requires HUGGING_FACE_HUB_TOKEN for gated stability-ai weights
+pytorch_CycleGAN_and_pix2pix,generative,PASS,,,
+pytorch_stargan,generative,PASS,,,
+Super_SloMo,generative,SKIP,,,needs torchbenchmark.util.framework.fb (Meta-internal manifold)
+DALLE2_pytorch,generative,SKIP,,,DALL-E 2 model does not support CPU
+diffuser_instruct_pix2pix,generative,SKIP,,,does not support CPU device
+Dcgan,generative,PASS,,,
+dlrm,recsys,PASS,,,
+torchrec_dlrm,recsys,SKIP,,,torchrec wheel not on PyPI for torch 2.11
+fambench_dlrm,recsys,SKIP,,,requires Criteo dataset
+fambench_xlmr,transformers,SKIP,,,requires xlmr training dataset
+nvidia_deeprecommender,recsys,PASS,,,
+drq,rl,SKIP,,,"RL env-coupled, not a static module"
+soft_actor_critic,rl,SKIP,,,RL env-coupled
+moco,vision,SKIP,,,training-only contrastive setup
+maml,meta_learning,SKIP,,,"training loop, not a static module"
+maml_omniglot,meta_learning,PASS,,,
+functorch_dp_cifar10,misc,PASS,,,
+functorch_maml_omniglot,misc,PASS,,,
+microbench_unbacked_tolist_sum,misc,SKIP,,,"microbench artifact, not a real model"
+mobilenet_v2_quantized_qat,quantized,SKIP,,,QAT — separate quantization pipeline
+resnet50_quantized_qat,quantized,SKIP,,,QAT — separate quantization pipeline
+BERT_pytorch,transformers,PASS,,,
+LearningToPaint,rl,PASS,,,
+demucs,audio,PASS,,,
+tacotron2,audio,SKIP,,,load_model assumes CUDA
+tts_angular,audio,SKIP,,,tts_angular — needs audio dataset
+phlippe_densenet,vision,PASS,,,
+phlippe_resnet,vision,PASS,,,
+doctr_det_predictor,vision,PASS,,,
+doctr_reco_predictor,vision,PASS,,,
+torch_multimodal_clip,transformers,SKIP,,,needs torchbenchmark.util.framework.fb (Meta-internal)
+pyhpc_equation_of_state,hpc,PASS,,,
+pyhpc_isoneutral_mixing,hpc,PASS,,,
+pyhpc_turbulent_kinetic_energy,hpc,PASS,,,

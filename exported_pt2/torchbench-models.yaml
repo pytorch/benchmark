@@ -1,0 +1,140 @@
+# Manifest of pytorch/benchmark models to export to .pt2 for modelrunner.
+#
+# Source: /home/sayans/Downloads/license_report.docx (110 commercially-
+# licensed models, yolov3 GPL-3.0 excluded).
+#
+# Per-entry fields:
+#   name        : model name (also the output .pt2 stem)
+#   package     : "models" or "canary_models" (subdir of torchbenchmark/)
+#   module      : actual subdir name (lowercase normalization for Dcgan)
+#   family      : grouping for --families filter and triage
+#   skip_reason : if set, exporter emits SKIP without trying
+#
+# Edit this file freely; the exporter is data-driven.
+
+models:
+  # ---------- vision / torchvision ----------
+  - {name: alexnet,            package: models, module: alexnet,            family: vision}
+  - {name: densenet121,        package: models, module: densenet121,        family: vision}
+  - {name: mnasnet1_0,         package: models, module: mnasnet1_0,         family: vision}
+  - {name: mobilenet_v2,       package: models, module: mobilenet_v2,       family: vision}
+  - {name: mobilenet_v3_large, package: models, module: mobilenet_v3_large, family: vision}
+  - {name: resnet18,           package: models, module: resnet18,           family: vision}
+  - {name: resnet50,           package: models, module: resnet50,           family: vision}
+  - {name: resnet152,          package: models, module: resnet152,          family: vision}
+  - {name: resnext50_32x4d,    package: models, module: resnext50_32x4d,    family: vision}
+  - {name: shufflenet_v2_x1_0, package: models, module: shufflenet_v2_x1_0, family: vision}
+  - {name: squeezenet1_1,      package: models, module: squeezenet1_1,      family: vision}
+  - {name: vgg16,              package: models, module: vgg16,              family: vision}
+  - {name: vision_maskrcnn,    package: models, module: vision_maskrcnn,    family: vision}
+
+  # ---------- timm ----------
+  - {name: timm_efficientnet,             package: models, module: timm_efficientnet,             family: timm}
+  - {name: timm_nfnet,                    package: models, module: timm_nfnet,                    family: timm}
+  - {name: timm_regnet,                   package: models, module: timm_regnet,                   family: timm}
+  - {name: timm_resnest,                  package: models, module: timm_resnest,                  family: timm}
+  - {name: timm_vision_transformer,       package: models, module: timm_vision_transformer,       family: timm}
+  - {name: timm_vision_transformer_large, package: models, module: timm_vision_transformer_large, family: timm}
+  - {name: timm_vovnet,                   package: models, module: timm_vovnet,                   family: timm}
+  - {name: timm_efficientdet,             package: models, module: timm_efficientdet,             family: timm,         skip_reason: "model code forces CUDA"}
+
+  # ---------- HuggingFace transformers (in-tree) ----------
+  - {name: hf_Albert,         package: models, module: hf_Albert,         family: transformers}
+  - {name: hf_Bart,           package: models, module: hf_Bart,           family: transformers}
+  - {name: hf_Bert,           package: models, module: hf_Bert,           family: transformers}
+  - {name: hf_Bert_large,     package: models, module: hf_Bert_large,     family: transformers}
+  - {name: hf_BigBird,        package: models, module: hf_BigBird,        family: transformers}
+  - {name: hf_DistilBert,     package: models, module: hf_DistilBert,     family: transformers}
+  - {name: hf_GPT2,           package: models, module: hf_GPT2,           family: transformers}
+  - {name: hf_GPT2_large,     package: models, module: hf_GPT2_large,     family: transformers}
+  - {name: hf_Longformer,     package: models, module: hf_Longformer,     family: transformers}
+  - {name: hf_Reformer,       package: models, module: hf_Reformer,       family: transformers}
+  - {name: hf_Roberta_base,   package: models, module: hf_Roberta_base,   family: transformers}
+  - {name: hf_T5,             package: models, module: hf_T5,             family: transformers}
+  - {name: hf_T5_base,        package: models, module: hf_T5_base,        family: transformers}
+  - {name: hf_T5_large,       package: models, module: hf_T5_large,       family: transformers}
+  - {name: hf_Whisper,        package: models, module: hf_Whisper,        family: transformers}
+  - {name: hf_distil_whisper, package: models, module: hf_distil_whisper, family: transformers}
+  - {name: llama_v2_7b_16h,   package: models, module: llama_v2_7b_16h,   family: transformers, skip_reason: "requires HF gated llama-2 weights"}
+  - {name: llava,             package: models, module: llava,             family: transformers}
+  - {name: moondream,         package: models, module: moondream,         family: transformers}
+
+  # ---------- HuggingFace transformers (canary) ----------
+  - {name: codellama,             package: canary_models, module: codellama,             family: transformers, skip_reason: "requires HF gated codellama weights"}
+  - {name: phi_1_5,               package: canary_models, module: phi_1_5,               family: transformers}
+  - {name: phi_2,                 package: canary_models, module: phi_2,                 family: transformers}
+  - {name: hf_MPT_7b_instruct,    package: canary_models, module: hf_MPT_7b_instruct,    family: transformers, skip_reason: "mosaicml/mpt-7b-instruct repo no longer accessible on HF"}
+  - {name: orca_2,                package: canary_models, module: orca_2,                family: transformers, skip_reason: "requires HF gated msft/orca-2 weights"}
+  - {name: mistral_7b_instruct,   package: canary_models, module: mistral_7b_instruct,   family: transformers}
+  - {name: llama_v31_8b,          package: canary_models, module: llama_v31_8b,          family: transformers, skip_reason: "requires HF gated meta-llama weights"}
+  - {name: llama_v2_7b,           package: canary_models, module: llama_v2_7b,           family: transformers, skip_reason: "requires HF gated llama-2 weights"}
+  - {name: llama_v2_13b,          package: canary_models, module: llama_v2_13b,          family: transformers, skip_reason: "gated + 26 GB weights"}
+  - {name: llama_v2_70b,          package: canary_models, module: llama_v2_70b,          family: transformers, skip_reason: "gated + 130 GB weights"}
+  - {name: hf_Yi,                 package: canary_models, module: hf_Yi,                 family: transformers, skip_reason: "gated + huge"}
+  - {name: hf_mixtral,            package: canary_models, module: hf_mixtral,            family: transformers, skip_reason: "gated + 90 GB MoE weights"}
+
+  # ---------- detectron2 ----------
+  - {name: detectron2_fasterrcnn_r_101_c4,  package: models, module: detectron2_fasterrcnn_r_101_c4,  family: detectron2}
+  - {name: detectron2_fasterrcnn_r_101_dc5, package: models, module: detectron2_fasterrcnn_r_101_dc5, family: detectron2}
+  - {name: detectron2_fasterrcnn_r_101_fpn, package: models, module: detectron2_fasterrcnn_r_101_fpn, family: detectron2}
+  - {name: detectron2_fasterrcnn_r_50_c4,   package: models, module: detectron2_fasterrcnn_r_50_c4,   family: detectron2}
+  - {name: detectron2_fasterrcnn_r_50_dc5,  package: models, module: detectron2_fasterrcnn_r_50_dc5,  family: detectron2}
+  - {name: detectron2_fasterrcnn_r_50_fpn,  package: models, module: detectron2_fasterrcnn_r_50_fpn,  family: detectron2}
+  - {name: detectron2_fcos_r_50_fpn,        package: models, module: detectron2_fcos_r_50_fpn,        family: detectron2}
+  - {name: detectron2_maskrcnn,             package: models, module: detectron2_maskrcnn,             family: detectron2}
+  - {name: detectron2_maskrcnn_r_101_c4,    package: models, module: detectron2_maskrcnn_r_101_c4,    family: detectron2}
+  - {name: detectron2_maskrcnn_r_101_fpn,   package: models, module: detectron2_maskrcnn_r_101_fpn,   family: detectron2}
+  - {name: detectron2_maskrcnn_r_50_c4,     package: models, module: detectron2_maskrcnn_r_50_c4,     family: detectron2}
+  - {name: detectron2_maskrcnn_r_50_fpn,    package: models, module: detectron2_maskrcnn_r_50_fpn,    family: detectron2}
+
+  # ---------- PyG / GNN ----------
+  - {name: basic_gnn_edgecnn, package: models,        module: basic_gnn_edgecnn, family: pyg}
+  - {name: basic_gnn_gcn,     package: models,        module: basic_gnn_gcn,     family: pyg}
+  - {name: basic_gnn_gin,     package: models,        module: basic_gnn_gin,     family: pyg}
+  - {name: basic_gnn_sage,    package: models,        module: basic_gnn_sage,    family: pyg}
+  - {name: gat,               package: canary_models, module: gat,               family: pyg, skip_reason: "GATConv wraps edge_index as EdgeIndex subclass during tracing — clashes with FakeTensor (same as basic_gnn_gcn)"}
+  - {name: gcn,               package: canary_models, module: gcn,               family: pyg, skip_reason: "GCNConv wraps edge_index as EdgeIndex subclass during tracing — clashes with FakeTensor (same as basic_gnn_gcn)"}
+  - {name: sage,              package: canary_models, module: sage,              family: pyg}
+
+  # ---------- generative / diffusers / sam ----------
+  - {name: sam,                           package: models,        module: sam,                           family: generative,    skip_reason: "needs torchbenchmark.util.framework.fb (Meta-internal)"}
+  - {name: sam_fast,                      package: models,        module: sam_fast,                      family: generative,    skip_reason: "needs triton (no CPU wheel for torch 2.11)"}
+  - {name: nanogpt,                       package: models,        module: nanogpt,                       family: generative}
+  - {name: stable_diffusion_text_encoder, package: models,        module: stable_diffusion_text_encoder, family: generative,    skip_reason: "requires HUGGING_FACE_HUB_TOKEN for gated stability-ai weights"}
+  - {name: stable_diffusion_unet,         package: models,        module: stable_diffusion_unet,         family: generative,    skip_reason: "requires HUGGING_FACE_HUB_TOKEN for gated stability-ai weights"}
+  - {name: pytorch_CycleGAN_and_pix2pix,  package: models,        module: pytorch_CycleGAN_and_pix2pix,  family: generative}
+  - {name: pytorch_stargan,               package: models,        module: pytorch_stargan,               family: generative}
+  - {name: Super_SloMo,                   package: models,        module: Super_SloMo,                   family: generative,    skip_reason: "needs torchbenchmark.util.framework.fb (Meta-internal manifold)"}
+  - {name: DALLE2_pytorch,                package: canary_models, module: DALLE2_pytorch,                family: generative,    skip_reason: "DALL-E 2 model does not support CPU"}
+  - {name: diffuser_instruct_pix2pix,     package: canary_models, module: diffuser_instruct_pix2pix,     family: generative,    skip_reason: "does not support CPU device"}
+  - {name: Dcgan,                         package: models,        module: dcgan,                         family: generative}
+
+  # ---------- recsys / RL / misc local ----------
+  - {name: dlrm,                              package: models,        module: dlrm,                              family: recsys}
+  - {name: torchrec_dlrm,                     package: canary_models, module: torchrec_dlrm,                     family: recsys,        skip_reason: "torchrec wheel not on PyPI for torch 2.11"}
+  - {name: fambench_dlrm,                     package: canary_models, module: fambench_dlrm,                     family: recsys,        skip_reason: "requires Criteo dataset"}
+  - {name: fambench_xlmr,                     package: canary_models, module: fambench_xlmr,                     family: transformers,  skip_reason: "requires xlmr training dataset"}
+  - {name: nvidia_deeprecommender,            package: models,        module: nvidia_deeprecommender,            family: recsys}
+  - {name: drq,                               package: models,        module: drq,                               family: rl,            skip_reason: "RL env-coupled, not a static module"}
+  - {name: soft_actor_critic,                 package: models,        module: soft_actor_critic,                 family: rl,            skip_reason: "RL env-coupled"}
+  - {name: moco,                              package: models,        module: moco,                              family: vision,        skip_reason: "training-only contrastive setup"}
+  - {name: maml,                              package: models,        module: maml,                              family: meta_learning, skip_reason: "training loop, not a static module"}
+  - {name: maml_omniglot,                     package: models,        module: maml_omniglot,                     family: meta_learning}
+  - {name: functorch_dp_cifar10,              package: models,        module: functorch_dp_cifar10,              family: misc}
+  - {name: functorch_maml_omniglot,           package: models,        module: functorch_maml_omniglot,           family: misc}
+  - {name: microbench_unbacked_tolist_sum,    package: models,        module: microbench_unbacked_tolist_sum,    family: misc,          skip_reason: "microbench artifact, not a real model"}
+  - {name: mobilenet_v2_quantized_qat,        package: models,        module: mobilenet_v2_quantized_qat,        family: quantized,     skip_reason: "QAT — separate quantization pipeline"}
+  - {name: resnet50_quantized_qat,            package: models,        module: resnet50_quantized_qat,            family: quantized,     skip_reason: "QAT — separate quantization pipeline"}
+  - {name: BERT_pytorch,                      package: models,        module: BERT_pytorch,                      family: transformers}
+  - {name: LearningToPaint,                   package: models,        module: LearningToPaint,                   family: rl}
+  - {name: demucs,                            package: models,        module: demucs,                            family: audio}
+  - {name: tacotron2,                         package: models,        module: tacotron2,                         family: audio,         skip_reason: "load_model assumes CUDA"}
+  - {name: tts_angular,                       package: models,        module: tts_angular,                       family: audio,         skip_reason: "tts_angular — needs audio dataset"}
+  - {name: phlippe_densenet,                  package: models,        module: phlippe_densenet,                  family: vision}
+  - {name: phlippe_resnet,                    package: models,        module: phlippe_resnet,                    family: vision}
+  - {name: doctr_det_predictor,               package: models,        module: doctr_det_predictor,               family: vision}
+  - {name: doctr_reco_predictor,              package: models,        module: doctr_reco_predictor,              family: vision}
+  - {name: torch_multimodal_clip,             package: models,        module: torch_multimodal_clip,             family: transformers,  skip_reason: "needs torchbenchmark.util.framework.fb (Meta-internal)"}
+  - {name: pyhpc_equation_of_state,           package: models,        module: pyhpc_equation_of_state,           family: hpc}
+  - {name: pyhpc_isoneutral_mixing,           package: models,        module: pyhpc_isoneutral_mixing,           family: hpc}
+  - {name: pyhpc_turbulent_kinetic_energy,    package: models,        module: pyhpc_turbulent_kinetic_energy,    family: hpc}

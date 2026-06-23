@@ -43,9 +43,9 @@ class GNNModel(BenchmarkModel):
         root = str(Path(__file__).parent.parent.parent.parent)
         sparse = True if self.tb_args.graph_type == "sparse" else False
         if sparse:
-            data = torch.load(f"{root}/data/.data/Reddit_minimal/sub_reddit_sparse.pt")
+            data = torch.load(f"{root}/data/.data/Reddit_minimal/sub_reddit_sparse.pt", weights_only=False)
         else:
-            data = torch.load(f"{root}/data/.data/Reddit_minimal/sub_reddit.pt")
+            data = torch.load(f"{root}/data/.data/Reddit_minimal/sub_reddit.pt", weights_only=False)
         mask = None
         sampler = None
         kwargs = {
@@ -163,14 +163,14 @@ class BasicGNNModel(BenchmarkModel):
         )
         Model = models_dict[model_name]
         self.model = Model(64, 64, num_layers=3).to(device)
-        # Apply some global side effects to library (throw out the compiled
-        # model though, we don't need it yet)
-        torch_geometric.compile(self.model)
-        # Make the model jittable
-        # (TODO: This probably makes us overstate the speedup, as making the
-        # model jittable also probably reduces its performance; but this is
-        # matching the benchmark)
-        self.model = sys.modules["torch_geometric.compile"].to_jittable(self.model)
+        # Local patch: torch_geometric.compile was removed in PyG 2.6+.
+        # We don't actually need the compiled or jittable variants for
+        # torch.export-based artifacts, so skip both calls when missing.
+        try:
+            torch_geometric.compile(self.model)
+            self.model = sys.modules["torch_geometric.compile"].to_jittable(self.model)
+        except (AttributeError, KeyError):
+            pass
         num_nodes, num_edges = 10_000, 200_000
         x = torch.randn(num_nodes, 64, device=device)
         edge_index = torch.randint(num_nodes, (2, num_edges), device=device)
