@@ -65,6 +65,7 @@ class ScribeUploader:
                     ]
                 ),
             },
+                            timeout=10.0,
         )
         print(r.text)
         r.raise_for_status()
