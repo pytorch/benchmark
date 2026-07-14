@@ -26,12 +26,14 @@ class ModelAnalyzer:
     def __init__(
         self,
         export_metrics_file=None,
-        metrics_needed=[],
+        metrics_needed=None,
         metrics_gpu_backend="nvml",
         cpu_monitored_pid=None,
     ):
         # For debug
         # set_logger(logging.DEBUG)
+        if metrics_needed is None:
+            metrics_needed = []
         set_logger()
         # delay the initialization to start_monitor
         self.gpu_factory = None
