@@ -157,7 +157,7 @@ def _load_test(path, device):
                     skip_by_metadata(
                         test=fn_name, device=device, extra_args=[], metadata=metadata
                     ),
-                    "This test is skipped by its metadata",
+                    f"This {model_name} test in {fn_name} mode on device {device} is skipped by its metadata",
                 )(fn)
             ),
         )
