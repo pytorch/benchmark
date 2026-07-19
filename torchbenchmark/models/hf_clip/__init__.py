@@ -50,9 +50,9 @@ class Model(BenchmarkModel):
         text = "the dog is here"
         images = [image] * self.batch_size
         texts = [text] * self.batch_size
-        self.inputs = processor(
+        self.inputs = dict(processor(
             text=texts, images=images, return_tensors="pt", padding=True
-        )
+        ))
 
         # dict_keys(['input_ids', 'attention_mask', 'pixel_values'])
         for key in self.inputs:
