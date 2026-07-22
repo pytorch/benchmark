@@ -62,8 +62,9 @@ class Model(BenchmarkModel):
         if test == "eval" or self.dargs.accuracy:
             self.model, self.example_inputs = self.prep_eval()
         elif test == "train":
+            coco_data = os.path.join(DATA_DIR, "coco128.data").replace(os.sep, "/")
             train_args = split(
-                f"--data {DATA_DIR}/coco128.data --img 416 --batch {self.batch_size} --nosave --notest \
+                f"--data {coco_data} --img 416 --batch {self.batch_size} --nosave --notest \
                                 --epochs {self.num_epochs} --device {self.device_str} --weights '' \
                                 --train-num-batch {self.train_num_batch} \
                                 --prefetch"
