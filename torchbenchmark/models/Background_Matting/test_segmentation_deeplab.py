@@ -53,7 +53,9 @@ class DeepLabModel(object):
         width, height = image.size
         resize_ratio = 1.0 * self.INPUT_SIZE / max(width, height)
         target_size = (int(resize_ratio * width), int(resize_ratio * height))
-        resized_image = image.convert("RGB").resize(target_size, Image.ANTIALIAS)
+        resized_image = image.convert("RGB").resize(
+            target_size, Image.Resampling.LANCZOS
+        )
         batch_seg_map = self.sess.run(
             self.OUTPUT_TENSOR_NAME,
             feed_dict={self.INPUT_TENSOR_NAME: [np.asarray(resized_image)]},
