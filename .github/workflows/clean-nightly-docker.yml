@@ -5,6 +5,9 @@ on:
     # Cleanup the nightly Docker images every 3 months
     - cron: '0 0 1 */3 *'
 
+permissions:
+  contents: read
+
 jobs:
   clean-push-docker:
     if: ${{ github.repository_owner == 'pytorch' }}

@@ -14,6 +14,9 @@ env:
   DOCKER_IMAGE: 'ghcr.io/pytorch/torchbench:latest'
   HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
 
+permissions:
+  contents: read
+
 jobs:
   build-push-docker:
     if: ${{ github.repository_owner == 'pytorch' }}
