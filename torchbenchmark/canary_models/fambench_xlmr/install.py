@@ -21,7 +21,8 @@ def update_fambench_submodule():
 
 def pip_install_requirements():
     try:
-        pip_install_requirements()
+        from utils.python_utils import pip_install_requirements as _pip_install_requirements
+        _pip_install_requirements()
         # pin fairseq version
         # ignore deps specified in requirements.txt
         subprocess.check_call(
