@@ -21,7 +21,7 @@ class MultiHeadAttention(nn.Module):
         nn.init.normal_(self.w_vs.weight, mean=0, std=np.sqrt(2.0 / (d_model + d_v)))
 
         self.attention = ScaledDotProductAttention(
-            temperature=np.power(d_k, 0.5), attn_dropout=dropout
+            temperature=float(np.power(d_k, 0.5)), attn_dropout=dropout
         )
         self.layer_norm = nn.LayerNorm(d_model)
 
