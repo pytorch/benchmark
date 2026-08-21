@@ -6,6 +6,14 @@ import os
 import cv2
 import numpy as np
 import torch
+import triton.language as tl
+
+# The optional flash_4 kernel requires Triton's legacy block-pointer frontend.
+# Disable it before importing segment_anything_fast so the model uses its SDPA
+# fallback when those APIs are unavailable.
+if not hasattr(tl, "make_block_ptr") or not hasattr(tl, "advance"):
+    os.environ["SEGMENT_ANYTHING_FAST_USE_FLASH_4"] = "0"
+
 from segment_anything_fast.build_sam import sam_model_fast_registry
 from segment_anything_fast.predictor import SamPredictor
 from torchbenchmark import DATA_PATH
