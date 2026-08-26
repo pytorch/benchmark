@@ -1,0 +1,29 @@
+warmup_iters: 50
+iters: 100
+
+axes:
+  rs:  
+    team_size: "max"
+    team_stride: 1
+  ag: 
+    team_size: "max"
+    team_stride: 2
+  a2a: 
+    team_size: "max"
+    team_stride: 2
+
+patterns:
+  - name: "AG+RS+A2A (256M)"
+    ops:
+    - block: "torch_all_gather"
+      axis: ag
+      name: "allgather"
+      vector_size: 256M
+    - block: "torch_reduce_scatter"
+      axis: rs
+      name: "reduce_scatter"
+      vector_size: 256M
+    - block: "torch_alltoall"
+      axis: a2a
+      name: "alltoall"
+      vector_size: 256M
