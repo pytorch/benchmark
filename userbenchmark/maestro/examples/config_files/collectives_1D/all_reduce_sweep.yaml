@@ -1,0 +1,74 @@
+iters: 50
+warmup_iters: 50
+save_results_to: "/path/to/results/all_reduce_sweep_%D.csv"
+axes:
+  ax:  # Create a axis explicitly
+    team_size: 16
+    team_stride: 1
+patterns:
+  # torch_all_reduce
+  - name: "all_reduce_1M"
+    ops:
+      - block: "torch_all_reduce"
+        axis: ax
+        vector_size: 1M
+  - name: "all_reduce_2M"
+    ops:
+      - block: "torch_all_reduce"
+        axis: ax
+        vector_size: 2M
+  - name: "all_reduce_4M"
+    ops:
+      - block: "torch_all_reduce"
+        axis: ax
+        vector_size: 4M
+  - name: "all_reduce_8M"
+    ops:
+      - block: "torch_all_reduce"
+        axis: ax
+        vector_size: 8M
+  - name: "all_reduce_16M"
+    ops:
+      - block: "torch_all_reduce"
+        axis: ax
+        vector_size: 16M
+  - name: "all_reduce_32M"
+    ops:
+      - block: "torch_all_reduce"
+        axis: ax
+        vector_size: 32M
+  - name: "all_reduce_64M"
+    ops:
+      - block: "torch_all_reduce"
+        axis: ax
+        vector_size: 64M
+  - name: "all_reduce_128M"
+    ops:
+      - block: "torch_all_reduce"
+        axis: ax
+        vector_size: 128M
+  - name: "all_reduce_256M"
+    ops:
+      - block: "torch_all_reduce"
+        axis: ax
+        vector_size: 256M
+  - name: "all_reduce_512M"
+    ops:
+      - block: "torch_all_reduce"
+        axis: ax
+        vector_size: 512M
+  - name: "all_reduce_1G"
+    ops:
+      - block: "torch_all_reduce"
+        axis: ax
+        vector_size: 1G
+  - name: "all_reduce_2G"
+    ops:
+      - block: "torch_all_reduce"
+        axis: ax
+        vector_size: 2G
+  - name: "all_reduce_4G"
+    ops:
+      - block: "torch_all_reduce"
+        axis: ax
+        vector_size: 4G
