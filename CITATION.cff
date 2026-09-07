@@ -26,3 +26,25 @@ authors:
 message: "If you use this software, please cite it using these metadata."
 date-released: 2020-09-03
 repository-code: "https://github.com/pytorch/benchmark"
+preferred-citation:
+  type: article
+  authors:
+  - family-names: "Hao"
+    given-names: "Yueming"
+  - family-names: "Zhao"
+    given-names: "Xu"
+  - family-names: "Bao"
+    given-names: "Bin"
+  - family-names: "Berard"
+    given-names: "David"
+  - family-names: "Constable"
+    given-names: "Will"
+  - family-names: "Aziz"
+    given-names: "Adnan"
+  - family-names: "Liu"
+    given-names: "Xu"
+  title: "TorchBench: Benchmarking PyTorch with High API Surface Coverage"
+  year: 2023
+  eprint: "2304.14226"
+  primary-class: "cs.LG"
+  archivePrefix: "arXiv"  
