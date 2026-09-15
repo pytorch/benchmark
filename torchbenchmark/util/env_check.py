@@ -591,11 +591,7 @@ def check_accuracy(tbmodel: "torchbenchmark.util.model.BenchmarkModel") -> str:
 
     if tbmodel.device == "cuda" and tbmodel.dargs.precision == "amp" and is_training:
         contexts.append(torch.cuda.amp.autocast)
-    elif (
-        tbmodel.dargs.precision == "amp"
-        and tbmodel.dargs.precision == "bf16"
-        and tbmodel.device == "cpu"
-    ):
+    elif tbmodel.dargs.precision == "amp_bf16" and tbmodel.device == "cpu":
         contexts.append(torch.cpu.amp.autocast)
 
     # Collect the fp64 reference outputs to be used later for accuracy checking.
