@@ -9,6 +9,7 @@ from accelerate import Accelerator
 from accelerate.utils.dataclasses import DeepSpeedPlugin
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.optim import AdamW
 from torch.utils.data import DataLoader
 from torchbenchmark.tasks import NLP
 from torchbenchmark.util.e2emodel import E2EBenchmarkModel
@@ -22,7 +23,6 @@ from torchbenchmark.util.framework.transformers.text_classification.dataset impo
     preprocess_dataset,
 )
 from transformers import (
-    AdamW,
     AutoConfig,
     AutoModelForSequenceClassification,
     AutoTokenizer,
@@ -172,7 +172,7 @@ class Model(E2EBenchmarkModel):
             # the samples passed). When using mixed precision, we add `pad_to_multiple_of=8` to pad all tensors to multiple
             # of 8s, which will enable the use of Tensor Cores on NVIDIA hardware with compute capability >= 7.5 (Volta).
             self.data_collator = DataCollatorWithPadding(
-                tokenizer, pad_to_multiple_of=(8 if accelerator.use_fp16 else None)
+                tokenizer, pad_to_multiple_of=(8 if accelerator.mixed_precision == "fp16" else None)
             )
 
         train_dataloader = DataLoader(
