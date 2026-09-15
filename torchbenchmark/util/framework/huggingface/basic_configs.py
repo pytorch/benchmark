@@ -300,8 +300,11 @@ def download_model(model_name):
         return m.groups()[0]
 
     config_cls_name = _extract_config_cls_name(HUGGINGFACE_MODELS[model_name][2])
-    exec(f"from transformers import {config_cls_name}")
-    config = eval(HUGGINGFACE_MODELS[model_name][2])
+    # Evaluate the constructor against an explicit namespace. `exec("from ... import
+    # X")` writes into a snapshot of the function locals, which `eval()` no longer
+    # sees as of Python 3.13 (PEP 667), so the class name was not resolvable.
+    config_ns = {config_cls_name: getattr(transformers, config_cls_name)}
+    config = eval(HUGGINGFACE_MODELS[model_name][2], config_ns)
     model_cls = getattr(transformers, HUGGINGFACE_MODELS[model_name][3])
     kwargs = {}
     if model_name in HUGGINGFACE_MODELS_REQUIRING_TRUST_REMOTE_CODE:
