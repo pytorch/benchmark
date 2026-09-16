@@ -13,4 +13,7 @@ ENV PYTHONPATH="/workspace/Megatron-LM:${PYTHONPATH}"
 RUN git clone <REPO> /workspace/maestro
 
 # Maestro dependencies come from maestro/pyproject.toml
-RUN pip install --no-build-isolation /workspace/maestro
+RUN pip install hatchling
+# The base image constrains cuda-bindings/cuda-python via PIP_CONSTRAINT; cupti-python
+# needs newer versions than that constraint allows, so it's overridden for this install.
+RUN PIP_CONSTRAINT= pip install --no-build-isolation /workspace/maestro
