@@ -17,6 +17,8 @@ jobs:
             runner: linux.24xlarge
           - config: cuda
             runner: linux.aws.a100
+          - config: cuda
+            runner: linux.dgx.b200
     name: Test ${{ matrix.config }}
     env:
       DOCKER_IMAGE: 'ghcr.io/pytorch/torchbench:latest'
