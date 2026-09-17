@@ -1,0 +1,408 @@
+iters: 100
+warmup_iters: 50
+save_results_to: "/path/to/results/all_collectives_sweep_%D.csv"
+axes:
+  ax:  # Create a axis explicitly
+    team_size: "max"
+    team_stride: 1
+patterns:
+  # torch_alltoall
+  - name: "alltoall_1M"
+    ops:
+      - block: "torch_alltoall"
+        axis: ax
+        vector_size: 1M
+  - name: "alltoall_2M"
+    ops:
+      - block: "torch_alltoall"
+        axis: ax
+        vector_size: 2M
+  - name: "alltoall_4M"
+    ops:
+      - block: "torch_alltoall"
+        axis: ax
+        vector_size: 4M
+  - name: "alltoall_8M"
+    ops:
+      - block: "torch_alltoall"
+        axis: ax
+        vector_size: 8M
+  - name: "alltoall_16M"
+    ops:
+      - block: "torch_alltoall"
+        axis: ax
+        vector_size: 16M
+  - name: "alltoall_32M"
+    ops:
+      - block: "torch_alltoall"
+        axis: ax
+        vector_size: 32M
+  - name: "alltoall_64M"
+    ops:
+      - block: "torch_alltoall"
+        axis: ax
+        vector_size: 64M
+  - name: "alltoall_128M"
+    ops:
+      - block: "torch_alltoall"
+        axis: ax
+        vector_size: 128M
+  - name: "alltoall_256M"
+    ops:
+      - block: "torch_alltoall"
+        axis: ax
+        vector_size: 256M
+  - name: "alltoall_512M"
+    ops:
+      - block: "torch_alltoall"
+        axis: ax
+        vector_size: 512M
+  - name: "alltoall_1G"
+    ops:
+      - block: "torch_alltoall"
+        axis: ax
+        vector_size: 1G
+  - name: "alltoall_2G"
+    ops:
+      - block: "torch_alltoall"
+        axis: ax
+        vector_size: 2G
+  - name: "alltoall_4G"
+    ops:
+      - block: "torch_alltoall"
+        axis: ax
+        vector_size: 4G
+
+  # torch_reduce_scatter
+  - name: "reduce_scatter_1M"
+    ops:
+      - block: "torch_reduce_scatter"
+        axis: ax
+        vector_size: 1M
+  - name: "reduce_scatter_2M"
+    ops:
+      - block: "torch_reduce_scatter"
+        axis: ax
+        vector_size: 2M
+  - name: "reduce_scatter_4M"
+    ops:
+      - block: "torch_reduce_scatter"
+        axis: ax
+        vector_size: 4M
+  - name: "reduce_scatter_8M"
+    ops:
+      - block: "torch_reduce_scatter"
+        axis: ax
+        vector_size: 8M
+  - name: "reduce_scatter_16M"
+    ops:
+      - block: "torch_reduce_scatter"
+        axis: ax
+        vector_size: 16M
+  - name: "reduce_scatter_32M"
+    ops:
+      - block: "torch_reduce_scatter"
+        axis: ax
+        vector_size: 32M
+  - name: "reduce_scatter_64M"
+    ops:
+      - block: "torch_reduce_scatter"
+        axis: ax
+        vector_size: 64M
+  - name: "reduce_scatter_128M"
+    ops:
+      - block: "torch_reduce_scatter"
+        axis: ax
+        vector_size: 128M
+  - name: "reduce_scatter_256M"
+    ops:
+      - block: "torch_reduce_scatter"
+        axis: ax
+        vector_size: 256M
+  - name: "reduce_scatter_512M"
+    ops:
+      - block: "torch_reduce_scatter"
+        axis: ax
+        vector_size: 512M
+  - name: "reduce_scatter_1G"
+    ops:
+      - block: "torch_reduce_scatter"
+        axis: ax
+        vector_size: 1G
+  - name: "reduce_scatter_2G"
+    ops:
+      - block: "torch_reduce_scatter"
+        axis: ax
+        vector_size: 2G
+  - name: "reduce_scatter_4G"
+    ops:
+      - block: "torch_reduce_scatter"
+        axis: ax
+        vector_size: 4G
+
+  # torch_all_gather
+  - name: "all_gather_1M"
+    ops:
+      - block: "torch_all_gather"
+        axis: ax
+        vector_size: 1M
+  - name: "all_gather_2M"
+    ops:
+      - block: "torch_all_gather"
+        axis: ax
+        vector_size: 2M
+  - name: "all_gather_4M"
+    ops:
+      - block: "torch_all_gather"
+        axis: ax
+        vector_size: 4M
+  - name: "all_gather_8M"
+    ops:
+      - block: "torch_all_gather"
+        axis: ax
+        vector_size: 8M
+  - name: "all_gather_16M"
+    ops:
+      - block: "torch_all_gather"
+        axis: ax
+        vector_size: 16M
+  - name: "all_gather_32M"
+    ops:
+      - block: "torch_all_gather"
+        axis: ax
+        vector_size: 32M
+  - name: "all_gather_64M"
+    ops:
+      - block: "torch_all_gather"
+        axis: ax
+        vector_size: 64M
+  - name: "all_gather_128M"
+    ops:
+      - block: "torch_all_gather"
+        axis: ax
+        vector_size: 128M
+  - name: "all_gather_256M"
+    ops:
+      - block: "torch_all_gather"
+        axis: ax
+        vector_size: 256M
+  - name: "all_gather_512M"
+    ops:
+      - block: "torch_all_gather"
+        axis: ax
+        vector_size: 512M
+  - name: "all_gather_1G"
+    ops:
+      - block: "torch_all_gather"
+        axis: ax
+        vector_size: 1G
+  - name: "all_gather_2G"
+    ops:
+      - block: "torch_all_gather"
+        axis: ax
+        vector_size: 2G
+  - name: "all_gather_4G"
+    ops:
+      - block: "torch_all_gather"
+        axis: ax
+        vector_size: 4G
+
+  # torch_reduce
+  - name: "reduce_1M"
+    ops:
+      - block: "torch_reduce"
+        axis: ax
+        vector_size: 1M
+  - name: "reduce_2M"
+    ops:
+      - block: "torch_reduce"
+        axis: ax
+        vector_size: 2M
+  - name: "reduce_4M"
+    ops:
+      - block: "torch_reduce"
+        axis: ax
+        vector_size: 4M
+  - name: "reduce_8M"
+    ops:
+      - block: "torch_reduce"
+        axis: ax
+        vector_size: 8M
+  - name: "reduce_16M"
+    ops:
+      - block: "torch_reduce"
+        axis: ax
+        vector_size: 16M
+  - name: "reduce_32M"
+    ops:
+      - block: "torch_reduce"
+        axis: ax
+        vector_size: 32M
+  - name: "reduce_64M"
+    ops:
+      - block: "torch_reduce"
+        axis: ax
+        vector_size: 64M
+  - name: "reduce_128M"
+    ops:
+      - block: "torch_reduce"
+        axis: ax
+        vector_size: 128M
+  - name: "reduce_256M"
+    ops:
+      - block: "torch_reduce"
+        axis: ax
+        vector_size: 256M
+  - name: "reduce_512M"
+    ops:
+      - block: "torch_reduce"
+        axis: ax
+        vector_size: 512M
+  - name: "reduce_1G"
+    ops:
+      - block: "torch_reduce"
+        axis: ax
+        vector_size: 1G
+  - name: "reduce_2G"
+    ops:
+      - block: "torch_reduce"
+        axis: ax
+        vector_size: 2G
+  - name: "reduce_4G"
+    ops:
+      - block: "torch_reduce"
+        axis: ax
+        vector_size: 4G
+
+  # torch_send_recv_ring
+  - name: "send_recv_ring_1M"
+    ops:
+      - block: "torch_send_recv_ring"
+        axis: ax
+        vector_size: 1M
+  - name: "send_recv_ring_2M"
+    ops:
+      - block: "torch_send_recv_ring"
+        axis: ax
+        vector_size: 2M
+  - name: "send_recv_ring_4M"
+    ops:
+      - block: "torch_send_recv_ring"
+        axis: ax
+        vector_size: 4M
+  - name: "send_recv_ring_8M"
+    ops:
+      - block: "torch_send_recv_ring"
+        axis: ax
+        vector_size: 8M
+  - name: "send_recv_ring_16M"
+    ops:
+      - block: "torch_send_recv_ring"
+        axis: ax
+        vector_size: 16M
+  - name: "send_recv_ring_32M"
+    ops:
+      - block: "torch_send_recv_ring"
+        axis: ax
+        vector_size: 32M
+  - name: "send_recv_ring_64M"
+    ops:
+      - block: "torch_send_recv_ring"
+        axis: ax
+        vector_size: 64M
+  - name: "send_recv_ring_128M"
+    ops:
+      - block: "torch_send_recv_ring"
+        axis: ax
+        vector_size: 128M
+  - name: "send_recv_ring_256M"
+    ops:
+      - block: "torch_send_recv_ring"
+        axis: ax
+        vector_size: 256M
+  - name: "send_recv_ring_512M"
+    ops:
+      - block: "torch_send_recv_ring"
+        axis: ax
+        vector_size: 512M
+  - name: "send_recv_ring_1G"
+    ops:
+      - block: "torch_send_recv_ring"
+        axis: ax
+        vector_size: 1G
+  - name: "send_recv_ring_2G"
+    ops:
+      - block: "torch_send_recv_ring"
+        axis: ax
+        vector_size: 2G
+  - name: "send_recv_ring_4G"
+    ops:
+      - block: "torch_send_recv_ring"
+        axis: ax
+        vector_size: 4G
+  - name: "all_reduce_1M"
+    ops:
+      - block: "torch_all_reduce"
+        axis: ax
+        vector_size: 1M
+  - name: "all_reduce_2M"
+    ops:
+      - block: "torch_all_reduce"
+        axis: ax
+        vector_size: 2M
+  - name: "all_reduce_4M"
+    ops:
+      - block: "torch_all_reduce"
+        axis: ax
+        vector_size: 4M
+  - name: "all_reduce_8M"
+    ops:
+      - block: "torch_all_reduce"
+        axis: ax
+        vector_size: 8M
+  - name: "all_reduce_16M"
+    ops:
+      - block: "torch_all_reduce"
+        axis: ax
+        vector_size: 16M
+  - name: "all_reduce_32M"
+    ops:
+      - block: "torch_all_reduce"
+        axis: ax
+        vector_size: 32M
+  - name: "all_reduce_64M"
+    ops:
+      - block: "torch_all_reduce"
+        axis: ax
+        vector_size: 64M
+  - name: "all_reduce_128M"
+    ops:
+      - block: "torch_all_reduce"
+        axis: ax
+        vector_size: 128M
+  - name: "all_reduce_256M"
+    ops:
+      - block: "torch_all_reduce"
+        axis: ax
+        vector_size: 256M
+  - name: "all_reduce_512M"
+    ops:
+      - block: "torch_all_reduce"
+        axis: ax
+        vector_size: 512M
+  - name: "all_reduce_1G"
+    ops:
+      - block: "torch_all_reduce"
+        axis: ax
+        vector_size: 1G
+  - name: "all_reduce_2G"
+    ops:
+      - block: "torch_all_reduce"
+        axis: ax
+        vector_size: 2G
+  - name: "all_reduce_4G"
+    ops:
+      - block: "torch_all_reduce"
+        axis: ax
+        vector_size: 4G
+

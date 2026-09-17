@@ -1,0 +1,21 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "maestro"
+version = "0.1.0"
+description = "A benchmarking framework for overlapping communication/compute operations."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "click==8.3.0",
+    "cupti-python",
+    "megatron-core>=0.13.1",
+    "pandas==2.3.3",
+    "PyYAML",
+    "torch>=2.6",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["maestro"]
