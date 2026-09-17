@@ -964,7 +964,9 @@ if __name__ == "__main__":
         )
 
     print("time/loss/accuracy (if enabled):")
-    with torch.autograd.profiler.profile(args.enable_profiling, use_gpu) as prof:
+    with torch.autograd.profiler.profile(
+        args.enable_profiling, use_device="cuda" if use_gpu else None
+    ) as prof:
         while k < args.nepochs:
             if k < skip_upto_epoch:
                 continue
