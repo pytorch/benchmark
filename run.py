@@ -33,6 +33,19 @@ WARMUP_ROUNDS = 3
 SUPPORT_DEVICE_LIST = ["cpu", "cuda"]
 if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
     SUPPORT_DEVICE_LIST.append("mps")
+
+_PRIVATEUSE1_NAME = (
+    torch._C._get_privateuse1_backend_name()
+    if hasattr(torch._C, "_get_privateuse1_backend_name")
+    else None
+)
+_privateuse1_module = (
+    torch.get_device_module(_PRIVATEUSE1_NAME)
+    if _PRIVATEUSE1_NAME is not None
+    else None
+)
+if _privateuse1_module is not None and _privateuse1_module.is_available():
+    SUPPORT_DEVICE_LIST.append(_PRIVATEUSE1_NAME)
 SUPPORT_PROFILE_LIST = [
     "record_shapes",
     "profile_memory",
@@ -215,7 +228,9 @@ def run_one_step(
             result_summary.append([(t1 - t0) / 1_000_000])
         else:
             t0 = time.time_ns()
+            torch.get_device_module(args.device).synchronize()
             func()
+            torch.get_device_module(args.device).synchronize()
             t1 = time.time_ns()
             result_summary.append([(t1 - t0) / 1_000_000])
         if stress:
@@ -525,8 +540,12 @@ def main() -> None:
     if "none" in metrics_needed:
         metrics_needed = []
 
-    # only enabled gpu_peak_mem for cuda device
-    if args.device != "cuda" and "gpu_peak_mem" in metrics_needed:
+    # gpu_peak_mem is only available for accelerator devices that expose
+    # max_memory_allocated (cuda/xpu/privateuseone/...).
+    if (
+        not hasattr(torch.get_device_module(args.device), "max_memory_allocated")
+        and "gpu_peak_mem" in metrics_needed
+    ):
         metrics_needed.remove("gpu_peak_mem")
     metrics_needed = list(set(metrics_needed))
     metrics_gpu_backend = args.metrics_gpu_backend
@@ -543,12 +562,14 @@ def main() -> None:
             )
 
             check_nvml()
-        if "gpu_peak_mem" in metrics_needed or (
-            "flops" in metrics_needed and metrics_gpu_backend == "dcgm"
-        ):
-            assert args.device == "cuda", (
-                "gpu_peak_mem and flops:dcgm are only available for cuda device."
-            )
+        if "gpu_peak_mem" in metrics_needed:
+            assert hasattr(
+                torch.get_device_module(args.device), "max_memory_allocated"
+            ), "gpu_peak_mem is only available for accelerator devices."
+        if "flops" in metrics_needed and metrics_gpu_backend == "dcgm":
+            assert (
+                args.device == "cuda"
+            ), "flops:dcgm is only available for cuda device."
     if args.export_metrics:
         if not args.metrics:
             print("You have to specifiy at least one metrics to export.")

@@ -4,13 +4,14 @@ This file may be loaded without torch packages installed, e.g., in OnDemand CI.
 """
 
 import copy
+import functools
 import logging
 import os
 import shutil
 from collections.abc import Mapping
 from contextlib import contextmanager, ExitStack
 from importlib.metadata import version
-from typing import Dict, List, Optional, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
     import torchbenchmark
@@ -92,6 +93,57 @@ USE_GRAD_IN_INFERENCE = ["maml"]
 HAS_NUMPY = True
 
 log = logging.getLogger(__name__)
+
+
+def _get_privateuse1_backend_name():
+    """Return the registered privateuse1 backend name (e.g. "mlu"), or None.
+
+    torch is imported lazily so this module can still be loaded without torch
+    installed (e.g. in OnDemand CI).
+    """
+    import torch
+
+    if hasattr(torch._C, "_get_privateuse1_backend_name"):
+        return torch._C._get_privateuse1_backend_name()
+    return None
+
+
+def _get_flag_value(flag: str):
+    """Read a flag's current value, where ``flag`` is an attribute path."""
+    import torch
+
+    return functools.reduce(getattr, flag.split(".")[1:], torch)
+
+
+def _set_flag_value(flag: str, value) -> None:
+    """Set a flag's value, where ``flag`` is an attribute path."""
+    import torch
+
+    parts = flag.split(".")[1:]
+    obj = functools.reduce(getattr, parts[:-1], torch)
+    setattr(obj, parts[-1], value)
+
+
+# Backend-specific determinism flags.  CUDA flags (cudnn.*, cuda.matmul.*) are
+# handled directly inside save/load_deterministic_dict; other accelerators
+# (e.g. privateuse1_backend) can register their flags here as
+# {flag: deterministic_value}.
+_DETERMINISTIC_FLAGS: Dict[str, Dict[str, Any]] = {}
+
+
+# For example:
+#  register_deterministic_backend("cuda", {
+#      "torch.backends.cudnn.allow_tf32": False,
+#      "torch.backends.cudnn.benchmark": False,
+#  })
+def register_deterministic_backend(device: str, flags: Dict[str, Any]) -> None:
+    """Register backend-specific determinism flags.
+
+    ``flags`` maps a flag to the deterministic value it should be set to during accuracy checks.
+    On save, each flag's current value is snapshotted and then set to its deterministic value;
+    on load, the snapshotted value is restored.
+    """
+    _DETERMINISTIC_FLAGS[device] = dict(flags)
 
 
 class DummyGradScaler:
@@ -185,6 +237,13 @@ def set_random_seed():
 
         if not torch.xpu._is_in_bad_fork():
             torch.xpu.manual_seed_all(seed)
+
+        privateuse1_name = _get_privateuse1_backend_name()
+        privateuse1_module = getattr(torch, privateuse1_name, None)
+        if privateuse1_module is not None and hasattr(
+            privateuse1_module, "manual_seed_all"
+        ):
+            privateuse1_module.manual_seed_all(seed)
         return default_generator.manual_seed(seed)
 
     torch.manual_seed(MAIN_RANDOM_SEED)
@@ -235,7 +294,7 @@ def is_staged_train_test(model: "torchbenchmark.util.model.BenchmarkModel") -> b
     )
 
 
-def save_deterministic_dict(name: str):
+def save_deterministic_dict(name: str, device: str):
     determinism_dict = {}
     if "CUBLAS_WORKSPACE_CONFIG" in os.environ:
         determinism_dict["CUBLAS_WORKSPACE_CONFIG"] = os.environ[
@@ -244,27 +303,35 @@ def save_deterministic_dict(name: str):
     os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
     import torch
 
-    determinism_dict["torch.use_deterministic_algorithms"] = (
-        torch.are_deterministic_algorithms_enabled()
-    )
-    determinism_dict["torch.backends.cudnn.allow_tf32"] = (
-        torch.backends.cudnn.allow_tf32
-    )
-    determinism_dict["torch.backends.cudnn.benchmark"] = torch.backends.cudnn.benchmark
-    determinism_dict["torch.backends.cuda.matmul.allow_tf32"] = (
-        torch.backends.cuda.matmul.allow_tf32
-    )
+    determinism_dict[
+        "torch.use_deterministic_algorithms"
+    ] = torch.are_deterministic_algorithms_enabled()
 
     if name not in UNSUPPORTED_USE_DETERMINISTIC_ALGORITHMS:
         torch.use_deterministic_algorithms(True)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.allow_tf32 = False
-    torch.backends.cudnn.benchmark = False
-    torch.backends.cuda.matmul.allow_tf32 = False
+
+    if device == "cuda":
+        determinism_dict[
+            "torch.backends.cudnn.allow_tf32"
+        ] = torch.backends.cudnn.allow_tf32
+        determinism_dict[
+            "torch.backends.cudnn.benchmark"
+        ] = torch.backends.cudnn.benchmark
+        determinism_dict[
+            "torch.backends.cuda.matmul.allow_tf32"
+        ] = torch.backends.cuda.matmul.allow_tf32
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.allow_tf32 = False
+        torch.backends.cudnn.benchmark = False
+        torch.backends.cuda.matmul.allow_tf32 = False
+    elif device in _DETERMINISTIC_FLAGS:
+        for flag, deterministic_value in _DETERMINISTIC_FLAGS[device].items():
+            determinism_dict[flag] = _get_flag_value(flag)
+            _set_flag_value(flag, deterministic_value)
     return determinism_dict
 
 
-def load_deterministic_dict(determinism_dict: Dict[str, bool]):
+def load_deterministic_dict(determinism_dict: Dict[str, bool], device: str):
     if "CUBLAS_WORKSPACE_CONFIG" in determinism_dict:
         os.environ["CUBLAS_WORKSPACE_CONFIG"] = determinism_dict[
             "CUBLAS_WORKSPACE_CONFIG"
@@ -276,13 +343,19 @@ def load_deterministic_dict(determinism_dict: Dict[str, bool]):
     torch.use_deterministic_algorithms(
         determinism_dict["torch.use_deterministic_algorithms"]
     )
-    torch.backends.cudnn.allow_tf32 = determinism_dict[
-        "torch.backends.cudnn.allow_tf32"
-    ]
-    torch.backends.cudnn.benchmark = determinism_dict["torch.backends.cudnn.benchmark"]
-    torch.backends.cuda.matmul.allow_tf32 = determinism_dict[
-        "torch.backends.cuda.matmul.allow_tf32"
-    ]
+    if device == "cuda":
+        torch.backends.cudnn.allow_tf32 = determinism_dict[
+            "torch.backends.cudnn.allow_tf32"
+        ]
+        torch.backends.cudnn.benchmark = determinism_dict[
+            "torch.backends.cudnn.benchmark"
+        ]
+        torch.backends.cuda.matmul.allow_tf32 = determinism_dict[
+            "torch.backends.cuda.matmul.allow_tf32"
+        ]
+    elif device in _DETERMINISTIC_FLAGS:
+        for flag in _DETERMINISTIC_FLAGS[device]:
+            _set_flag_value(flag, determinism_dict[flag])
 
 
 def cast_to(dtype, model, inputs):
@@ -419,7 +492,12 @@ def clone_inputs(example_inputs):
 def init_optimizer(name, device, params, is_training):
     import torch
 
-    if device == "cuda" and is_training and name not in CI_SKIP_OPTIMIZER:
+    privateuse1_name = _get_privateuse1_backend_name()
+    if (
+        (device == "cuda" or device == privateuse1_name)
+        and is_training
+        and name not in CI_SKIP_OPTIMIZER
+    ):
         optimizer = torch.optim.SGD(params, lr=0.01)
     else:
         optimizer = None
@@ -515,6 +593,7 @@ def run_n_iterations(
 
 
 def get_tolerance_and_cosine_flag(model, is_training, current_device, name):
+    privateuse1_name = _get_privateuse1_backend_name()
     tolerance = 1e-4
     cosine = model.dargs.use_cosine_similarity
     # Increase the tolerance for torch allclose
@@ -527,7 +606,7 @@ def get_tolerance_and_cosine_flag(model, is_training, current_device, name):
         if name in REQUIRE_HIGHER_BF16_TOLERANCE:
             return 1e-2, cosine
 
-    if is_training and current_device == "cuda":
+    if is_training and (current_device == "cuda" or current_device == privateuse1_name):
         tolerance = 1e-3
         if name in REQUIRE_COSINE_TOLERACE:
             cosine = True
@@ -592,6 +671,14 @@ def check_accuracy(tbmodel: "torchbenchmark.util.model.BenchmarkModel") -> str:
     if tbmodel.device == "cuda" and tbmodel.dargs.precision == "amp" and is_training:
         contexts.append(torch.cuda.amp.autocast)
     elif (
+        tbmodel.device not in ("cpu", "cuda")
+        and tbmodel.dargs.precision == "amp"
+        and is_training
+    ):
+        device_module = torch.get_device_module(tbmodel.device)
+        if hasattr(device_module, "amp"):
+            contexts.append(device_module.amp.autocast)
+    elif (
         tbmodel.dargs.precision == "amp"
         and tbmodel.dargs.precision == "bf16"
         and tbmodel.device == "cpu"
@@ -651,7 +738,7 @@ def check_accuracy(tbmodel: "torchbenchmark.util.model.BenchmarkModel") -> str:
         except Exception as e:
             accuracy_status = (
                 "eager_1st_run_OOM"
-                if isinstance(e, torch.cuda.OutOfMemoryError)
+                if isinstance(e, torch.OutOfMemoryError)
                 else "eager_1st_run_fail"
             )
             print(e)
@@ -675,7 +762,7 @@ def check_accuracy(tbmodel: "torchbenchmark.util.model.BenchmarkModel") -> str:
         except Exception as e:
             accuracy_status = (
                 "eager_2nd_run_OOM"
-                if isinstance(e, torch.cuda.OutOfMemoryError)
+                if isinstance(e, torch.OutOfMemoryError)
                 else "eager_2nd_run_fail"
             )
             return accuracy_status
@@ -730,9 +817,8 @@ def check_accuracy(tbmodel: "torchbenchmark.util.model.BenchmarkModel") -> str:
             )
         except Exception as e:
             log.exception(e)
-            accuracy_status = (
-                "OOM" if isinstance(e, torch.cuda.OutOfMemoryError) else "fail_to_run"
-            )
+            is_oom = isinstance(e, torch.OutOfMemoryError)
+            accuracy_status = "OOM" if is_oom else "fail_to_run"
             return accuracy_status
 
         try:
