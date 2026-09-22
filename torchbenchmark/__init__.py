@@ -96,8 +96,10 @@ def _install_deps(model_path: str, verbose: bool = True) -> Tuple[bool, Any]:
             subprocess.run(*run_args, **run_kwargs)  # type: ignore
             new_versions = get_pkg_versions(TORCH_DEPS)
             if versions != new_versions:
-                errmsg = f"The torch packages are re-installed after installing the benchmark deps. \
+                errmsg = (
+                    f"The torch packages are re-installed after installing the benchmark deps. \
                            Before: {versions}, after: {new_versions}"
+                )
                 return (False, errmsg, None)
         else:
             return (True, f"No install.py is found in {model_path}. Skip.", None)
@@ -490,13 +492,15 @@ class ModelTask(base_task.TaskBase):
     def check_details_train(self, device, md) -> None:
         self.extract_details_train()
         if device == "cuda":
-            assert (
-                md["train_benchmark"] == self._details.metadata["train_benchmark"]
-            ), "torch.backends.cudnn.benchmark does not match expect metadata during training."
+            assert md["train_benchmark"] == self._details.metadata["train_benchmark"], (
+                "torch.backends.cudnn.benchmark does not match expect metadata during training."
+            )
             assert (
                 md["train_deterministic"]
                 == self._details.metadata["train_deterministic"]
-            ), "torch.backends.cudnn.deterministic does not match expect metadata during training."
+            ), (
+                "torch.backends.cudnn.deterministic does not match expect metadata during training."
+            )
 
     def extract_details_eval(self) -> None:
         self._details.metadata["eval_benchmark"] = self.worker.load_stmt(
@@ -513,23 +517,25 @@ class ModelTask(base_task.TaskBase):
     def check_details_eval(self, device, md) -> None:
         self.extract_details_eval()
         if device == "cuda":
-            assert (
-                md["eval_benchmark"] == self._details.metadata["eval_benchmark"]
-            ), "torch.backends.cudnn.benchmark does not match expect metadata during eval."
+            assert md["eval_benchmark"] == self._details.metadata["eval_benchmark"], (
+                "torch.backends.cudnn.benchmark does not match expect metadata during eval."
+            )
             assert (
                 md["eval_deterministic"] == self._details.metadata["eval_deterministic"]
-            ), "torch.backends.cudnn.deterministic does not match expect metadata during eval."
-        assert (
-            md["eval_nograd"] == self._details.metadata["eval_nograd"]
-        ), "torch.is_grad_enabled does not match expect metadata during eval."
+            ), (
+                "torch.backends.cudnn.deterministic does not match expect metadata during eval."
+            )
+        assert md["eval_nograd"] == self._details.metadata["eval_nograd"], (
+            "torch.is_grad_enabled does not match expect metadata during eval."
+        )
 
     @base_task.run_in_worker(scoped=True)
     @staticmethod
     def check_eval_output() -> None:
         instance = globals()["model"]
-        assert (
-            instance.test == "eval"
-        ), "We only support checking output of an eval test. Please submit a bug report."
+        assert instance.test == "eval", (
+            "We only support checking output of an eval test. Please submit a bug report."
+        )
         instance.invoke()
 
     @base_task.run_in_worker(scoped=True)
