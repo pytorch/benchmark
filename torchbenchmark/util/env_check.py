@@ -667,11 +667,10 @@ def check_accuracy(tbmodel: "torchbenchmark.util.model.BenchmarkModel") -> str:
     accuracy_status = "pass"
     contexts = []
     equal_nan = _equal_nan_p(tbmodel.dargs.precision)
+    privateuse1_name = _get_privateuse1_backend_name()
 
-    if tbmodel.device == "cuda" and tbmodel.dargs.precision == "amp" and is_training:
-        contexts.append(torch.cuda.amp.autocast)
-    elif (
-        tbmodel.device not in ("cpu", "cuda")
+    if (
+        tbmodel.device in ("cuda", privateuse1_name)
         and tbmodel.dargs.precision == "amp"
         and is_training
     ):

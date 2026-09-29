@@ -122,25 +122,16 @@ def get_peak_memory(
             mem_model_analyzer.update_export_name("_peak_memory")
             mem_model_analyzer.export_all_records_to_csv()
     else:
-        if device == "cuda":
-            torch.cuda.reset_peak_memory_stats()
-            torch.cuda.empty_cache()
-        else:
-            device_module = torch.get_device_module(device)
-            if hasattr(device_module, "reset_peak_memory_stats"):
-                device_module.reset_peak_memory_stats()
-            if hasattr(device_module, "empty_cache"):
-                device_module.empty_cache()
+        device_module = torch.get_device_module(device)
+        if hasattr(device_module, "reset_peak_memory_stats"):
+            device_module.reset_peak_memory_stats()
+        if hasattr(device_module, "empty_cache"):
+            device_module.empty_cache()
         for _ in range(num_iter):
             work_func()
-        if device == "cuda":
-            device_id = torch.cuda.current_device()
-            gpu_peak_mem = torch.cuda.max_memory_allocated() / 10**9
-        else:
-            device_module = torch.get_device_module(device)
-            if hasattr(device_module, "max_memory_allocated"):
-                device_id = device_module.current_device()
-                gpu_peak_mem = device_module.max_memory_allocated() / 10**9
+        if hasattr(device_module, "max_memory_allocated"):
+            device_id = device_module.current_device()
+            gpu_peak_mem = device_module.max_memory_allocated() / 10**9
         total = psutil.virtual_memory().total
         percentage = psutil.Process(os.getpid()).memory_percent()
         cpu_peak_mem = percentage * total / 10**9

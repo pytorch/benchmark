@@ -696,9 +696,9 @@ def load_model_by_name(model_name: str):
             else f"{internal_model_dir}.{model_name}"
         )
         module_path = f".models.{model_pkg}"
-    assert (
-        len(models) == 1
-    ), f"Found more than one models {models} with the exact name: {model_name}"
+    assert len(models) == 1, (
+        f"Found more than one models {models} with the exact name: {model_name}"
+    )
 
     module = importlib.import_module(module_path, package=__name__)
     if accelerator_backend := os.getenv("ACCELERATOR_BACKEND"):

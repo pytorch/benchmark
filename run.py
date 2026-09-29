@@ -227,8 +227,8 @@ def run_one_step(
             # TODO: modify this to add GPU time as well
             result_summary.append([(t1 - t0) / 1_000_000])
         else:
-            t0 = time.time_ns()
             torch.get_device_module(args.device).synchronize()
+            t0 = time.time_ns()
             func()
             torch.get_device_module(args.device).synchronize()
             t1 = time.time_ns()
