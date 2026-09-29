@@ -396,14 +396,10 @@ class ModelTask(base_task.TaskBase):
 
         gc.collect()
 
-        if device == "cuda":
-            torch.cuda.empty_cache()
-            maybe_sync = torch.cuda.synchronize
-        else:
-            device_module = torch.get_device_module(device)
-            if hasattr(device_module, "empty_cache"):
-                device_module.empty_cache()
-            maybe_sync = device_module.synchronize
+        device_module = torch.get_device_module(device)
+        if hasattr(device_module, "empty_cache"):
+            device_module.empty_cache()
+        maybe_sync = getattr(device_module, "synchronize", lambda: None)
 
         globals().update(
             {

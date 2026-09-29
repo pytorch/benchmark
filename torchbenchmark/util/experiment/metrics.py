@@ -34,7 +34,9 @@ class TorchBenchModelMetrics:
 
 
 def maybe_synchronize(device: str):
-    torch.get_device_module(device).synchronize()
+    device_module = torch.get_device_module(device)
+    if hasattr(device_module, "synchronize"):
+        device_module.synchronize()
 
 
 def get_latencies(

@@ -146,6 +146,14 @@ def register_deterministic_backend(device: str, flags: Dict[str, Any]) -> None:
     _DETERMINISTIC_FLAGS[device] = dict(flags)
 
 
+register_deterministic_backend("cuda", {
+    "torch.backends.cudnn.deterministic": True,
+    "torch.backends.cudnn.allow_tf32": False,
+    "torch.backends.cudnn.benchmark": False,
+    "torch.backends.cuda.matmul.allow_tf32": False,
+})
+
+
 class DummyGradScaler:
     def scale(self, loss):
         return loss
@@ -239,7 +247,11 @@ def set_random_seed():
             torch.xpu.manual_seed_all(seed)
 
         privateuse1_name = _get_privateuse1_backend_name()
-        privateuse1_module = getattr(torch, privateuse1_name, None)
+        privateuse1_module = (
+            getattr(torch, privateuse1_name, None)
+            if privateuse1_name is not None
+            else None
+        )
         if privateuse1_module is not None and hasattr(
             privateuse1_module, "manual_seed_all"
         ):
@@ -310,21 +322,7 @@ def save_deterministic_dict(name: str, device: str):
     if name not in UNSUPPORTED_USE_DETERMINISTIC_ALGORITHMS:
         torch.use_deterministic_algorithms(True)
 
-    if device == "cuda":
-        determinism_dict[
-            "torch.backends.cudnn.allow_tf32"
-        ] = torch.backends.cudnn.allow_tf32
-        determinism_dict[
-            "torch.backends.cudnn.benchmark"
-        ] = torch.backends.cudnn.benchmark
-        determinism_dict[
-            "torch.backends.cuda.matmul.allow_tf32"
-        ] = torch.backends.cuda.matmul.allow_tf32
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.allow_tf32 = False
-        torch.backends.cudnn.benchmark = False
-        torch.backends.cuda.matmul.allow_tf32 = False
-    elif device in _DETERMINISTIC_FLAGS:
+    if device in _DETERMINISTIC_FLAGS:
         for flag, deterministic_value in _DETERMINISTIC_FLAGS[device].items():
             determinism_dict[flag] = _get_flag_value(flag)
             _set_flag_value(flag, deterministic_value)
@@ -343,17 +341,7 @@ def load_deterministic_dict(determinism_dict: Dict[str, bool], device: str):
     torch.use_deterministic_algorithms(
         determinism_dict["torch.use_deterministic_algorithms"]
     )
-    if device == "cuda":
-        torch.backends.cudnn.allow_tf32 = determinism_dict[
-            "torch.backends.cudnn.allow_tf32"
-        ]
-        torch.backends.cudnn.benchmark = determinism_dict[
-            "torch.backends.cudnn.benchmark"
-        ]
-        torch.backends.cuda.matmul.allow_tf32 = determinism_dict[
-            "torch.backends.cuda.matmul.allow_tf32"
-        ]
-    elif device in _DETERMINISTIC_FLAGS:
+    if device in _DETERMINISTIC_FLAGS:
         for flag in _DETERMINISTIC_FLAGS[device]:
             _set_flag_value(flag, determinism_dict[flag])
 
