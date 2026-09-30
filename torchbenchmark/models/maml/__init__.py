@@ -23,6 +23,7 @@ class Model(BenchmarkModel):
         super().__init__(
             test=test, device=device, batch_size=batch_size, extra_args=extra_args
         )
+        torch._dynamo.config.trace_autograd_ops = True
 
         # load from disk or synthesize data
         use_data_file = False
