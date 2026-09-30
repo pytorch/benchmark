@@ -54,3 +54,16 @@ RUN python3 install.py
 
 # Check the dependency
 RUN uv pip list
+
+# CI tags the nightly with the dev<date> of the torch build it installed. On an
+# OSDC runner there is no docker daemon to `docker run` the image and ask it, so
+# record the version in the image and let buildx export just that one file:
+#   docker buildx build --target version-export --output type=local,dest=<dir>
+RUN python3 -c "import torch; print(torch.__version__)" > /torch_version
+
+FROM scratch AS version-export
+COPY --from=base /torch_version /torch_version
+
+# Keeps the default build target the real image: with no --target, docker builds
+# the *last* stage, which would otherwise be the scratch one above.
+FROM base AS image
