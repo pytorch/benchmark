@@ -14,28 +14,42 @@ jobs:
       matrix:
         include:
           - config: cpu
-            runner: linux.24xlarge
+            runner: mt-l-x86iavx512-94-192
+            gpu-flag: ''
           - config: cuda
-            runner: linux.aws.a100
+            runner: mt-l-x86iavx512-11-125-a100
+            gpu-flag: '--gpus all'
     name: Test ${{ matrix.config }}
-    env:
-      DOCKER_IMAGE: 'ghcr.io/pytorch/torchbench:latest'
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 240
+    container:
+      image: ghcr.io/pytorch/torchbench:latest
+      options: ${{ matrix.gpu-flag }}
     environment: docker-s3-upload
+    timeout-minutes: 240
     steps:
       - name: Checkout TorchBench
         uses: actions/checkout@v5
 
-      - name: Pull docker image
-        uses: pytorch/test-infra/.github/actions/pull-docker-image@main
-        with:
-          docker-image: ${{ env.DOCKER_IMAGE }}
-
-      - name: Setup CUDA GPU_FLAG for docker run
-        if: matrix.config == 'cuda'
+      - name: Point the HuggingFace cache somewhere writable
+        shell: bash
         run: |
-          echo "GPU_FLAG=--gpus all -e NVIDIA_DRIVER_CAPABILITIES=all" >> "${GITHUB_ENV}"
+          set -euo pipefail
+
+          # Models are read from the shared read-only /mnt/hf_cache mount, but
+          # everything HF writes regardless -- stored_tokens, hub/.locks, the
+          # arrow build of a seeded dataset -- has to go somewhere writable or
+          # it fails with "[Errno 30] Read-only file system".
+          if [[ -d /mnt/hf_cache ]]; then
+            mkdir -p "${RUNNER_TEMP}/hf_home" "${RUNNER_TEMP}/hf_datasets"
+            if [[ -d /mnt/hf_cache/datasets ]]; then
+              cp -a /mnt/hf_cache/datasets/. "${RUNNER_TEMP}/hf_datasets/" 2>/dev/null || true
+            fi
+            {
+              echo "HF_HOME=${RUNNER_TEMP}/hf_home"
+              echo "HF_HUB_CACHE=/mnt/hf_cache/hub"
+              echo "HF_DATASETS_CACHE=${RUNNER_TEMP}/hf_datasets"
+            } >> "${GITHUB_ENV}"
+          fi
 
       - name: Test TorchBench
         shell: bash
@@ -45,32 +59,8 @@ jobs:
         run: |
           set -eux
 
-          container_name=$(docker run \
-            ${GPU_FLAG:-} \
-            -e HUGGING_FACE_HUB_TOKEN \
-            -e TEST_CONFIG \
-            --ipc=host \
-            --tty \
-            --detach \
-            --security-opt seccomp=unconfined \
-            --shm-size=32g \
-            --cap-add=SYS_PTRACE \
-            -v "${GITHUB_WORKSPACE}:/tmp/workspace" \
-            -w /tmp/workspace \
-            "${DOCKER_IMAGE}"
-          )
-
-          # Install TorchBench
-          docker exec -t -w /tmp/workspace "${container_name}" bash -c "
-            set -eux
-            bash .ci/torchbench/install.sh
-          "
-
-          # Run TorchBench tests
-          docker exec -t -w /tmp/workspace "${container_name}" bash -c "
-            set -eux
-            bash .ci/torchbench/test.sh
-          "
+          bash .ci/torchbench/install.sh
+          bash .ci/torchbench/test.sh
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}-${{ github.event_name == 'workflow_dispatch' }}
