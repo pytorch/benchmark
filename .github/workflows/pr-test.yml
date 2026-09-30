@@ -35,21 +35,18 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Models are read from the shared read-only /mnt/hf_cache mount, but
-          # everything HF writes regardless -- stored_tokens, hub/.locks, the
-          # arrow build of a seeded dataset -- has to go somewhere writable or
-          # it fails with "[Errno 30] Read-only file system".
-          if [[ -d /mnt/hf_cache ]]; then
-            mkdir -p "${RUNNER_TEMP}/hf_home" "${RUNNER_TEMP}/hf_datasets"
-            if [[ -d /mnt/hf_cache/datasets ]]; then
-              cp -a /mnt/hf_cache/datasets/. "${RUNNER_TEMP}/hf_datasets/" 2>/dev/null || true
-            fi
-            {
-              echo "HF_HOME=${RUNNER_TEMP}/hf_home"
-              echo "HF_HUB_CACHE=/mnt/hf_cache/hub"
-              echo "HF_DATASETS_CACHE=${RUNNER_TEMP}/hf_datasets"
-            } >> "${GITHUB_ENV}"
-          fi
+          # Ignore the shared read-only /mnt/hf_cache mount and download fresh.
+          # install.py pulls the whole hf_* model set, and most of it is the
+          # legacy un-namespaced ids (gpt2, t5-base, albert-base-v2) that cache
+          # under a different directory than their namespaced aliases, so the
+          # mount would have to be kept in step with this list in every region
+          # to be worth reading from.
+          mkdir -p "${RUNNER_TEMP}/hf_home" "${RUNNER_TEMP}/hf_datasets"
+          {
+            echo "HF_HOME=${RUNNER_TEMP}/hf_home"
+            echo "HF_HUB_CACHE=${RUNNER_TEMP}/hf_home/hub"
+            echo "HF_DATASETS_CACHE=${RUNNER_TEMP}/hf_datasets"
+          } >> "${GITHUB_ENV}"
 
       - name: Test TorchBench
         shell: bash
