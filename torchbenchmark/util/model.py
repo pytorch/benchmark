@@ -128,7 +128,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         # parse the args
         self.dargs, opt_args = parse_decoration_args(self, self.extra_args)
         if self.dargs.accuracy and not self.DISABLE_DETERMINISM:
-            self.deterministic_dict = save_deterministic_dict(self.name)
+            self.deterministic_dict = save_deterministic_dict(self.name, self.device)
         # if the args contain "--torchdynamo", parse torchdynamo args
         if "--torchdynamo" in opt_args or "--inductor" in opt_args:
             self.dynamo = True
@@ -150,7 +150,7 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         if self.dargs.accuracy:
             self.accuracy = check_accuracy(self)
             if not self.DISABLE_DETERMINISM:
-                load_deterministic_dict(self.deterministic_dict)
+                load_deterministic_dict(self.deterministic_dict, self.device)
             return
         # apply decoration args
         apply_decoration_args(self, self.dargs)
@@ -180,8 +180,9 @@ class BenchmarkModel(metaclass=PostInitProcessor):
                 module, _inputs = self.get_module()
             self.set_module(apply_trainer(module, self.dargs.distributed))
         # Need to clean up the cache because we run deep copy within correceness check
-        if self.device == "cuda":
-            torch.cuda.empty_cache()
+        device_module = torch.get_device_module(self.device)
+        if hasattr(device_module, "empty_cache"):
+            device_module.empty_cache()
         self._end_init_time = time.time_ns()
 
     def _skip_by_device_name(self):
@@ -215,20 +216,10 @@ class BenchmarkModel(metaclass=PostInitProcessor):
         return 1
 
     def _get_batch_size_from_metadata(self) -> Optional[str]:
-        if self.device == "cuda":
-            current_device_name = (
-                torch.cuda.get_device_name()
-                if torch.cuda.get_device_name()
-                else "UNKNOWN"
-            )
-            if current_device_name in SPECIAL_DEVICE_MAPPING:
-                current_device_name = SPECIAL_DEVICE_MAPPING[current_device_name]
-        elif self.device == "xpu":
-            current_device_name = (
-                torch.xpu.get_device_name()
-                if torch.xpu.get_device_name()
-                else "UNKNOWN"
-            )
+        device_module = torch.get_device_module(self.device)
+
+        if hasattr(device_module, "get_device_name"):
+            current_device_name = device_module.get_device_name() or "UNKNOWN"
             if current_device_name in SPECIAL_DEVICE_MAPPING:
                 current_device_name = SPECIAL_DEVICE_MAPPING[current_device_name]
         else:
@@ -482,10 +473,9 @@ class BenchmarkModel(metaclass=PostInitProcessor):
             return NotImplementedError("AMP not implemented for cudagraphs")
         if not hasattr(self, "amp_context"):
             raise RuntimeError(f"{self.name} doesn't have amp_context support!")
-        if self.device == "cpu":
-            self.amp_context = lambda: torch.cpu.amp.autocast()
-        elif self.device == "cuda":
-            self.amp_context = lambda: torch.cuda.amp.autocast()
+        device_module = torch.get_device_module(self.device)
+        if hasattr(device_module, "amp"):
+            self.amp_context = lambda: device_module.amp.autocast()
         if self.test == "eval":
             self.add_context(self.amp_context)
         elif self.test == "train":
