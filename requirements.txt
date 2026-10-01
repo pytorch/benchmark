@@ -7,6 +7,9 @@ distro
 iopath
 pytest
 pytest-benchmark
+# torch's run_tests() imports xmlrunner whenever TEST_SAVE_XML is set, which
+# it is under CI, so the cuda leg of .ci/torchbench/test.sh needs it present.
+unittest-xml-reporting<=3.2.0,>=2.0.0
 requests
 tabulate
 timm==1.0.19
