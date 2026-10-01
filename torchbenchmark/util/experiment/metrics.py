@@ -141,7 +141,7 @@ def get_peak_memory(
             gpu_peak_mem = torch.cuda.max_memory_allocated() / 10**9
         total = psutil.virtual_memory().total
         percentage = psutil.Process(os.getpid()).memory_percent()
-        cpu_peak_mem = percentage * total / 10**9
+        cpu_peak_mem = percentage * total / 100 / 10**9
     return cpu_peak_mem, device_id, gpu_peak_mem
 
 
