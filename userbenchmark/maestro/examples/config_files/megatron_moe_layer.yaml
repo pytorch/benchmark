@@ -1,0 +1,38 @@
+warmup_iters: 50
+iters: 100
+
+axes:
+  ep:  
+    team_size: 4
+    team_stride: 1
+  dp: 
+    team_size: 4
+    team_stride: 2
+
+patterns:
+  - name: "moe_only"
+    ops:
+    - block: "megatron_moe_layer" 
+      axis: ep 
+      name: "moe_layer_1"
+      batch_size: 100
+      isl: 4096
+      hidden_size: 2048
+      topk: 2
+      dispatch_type: "allgather"
+      num_experts: 8
+  - name: "moe+allgather"
+    ops:
+    - block: "torch_all_gather" 
+      axis: dp 
+      name: "dp_allgather"
+      vector_size: 250M
+    - block: "megatron_moe_layer" 
+      axis: ep 
+      name: "moe_layer_1"
+      batch_size: 100
+      isl: 4096
+      hidden_size: 2048
+      topk: 2
+      dispatch_type: "allgather"
+      num_experts: 8
