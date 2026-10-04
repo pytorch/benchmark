@@ -50,10 +50,6 @@ def create_axis_by_stride(world_size, stride, size):
 
     return axis
 
-def is_root():
-    rank, world_size = get_rank_and_world_size()
-    return rank == 0
-
 def dist_print(*args, **kwargs):
     """Print a message with the rank prefix"""
     rank, world_size = get_rank_and_world_size()
@@ -61,9 +57,17 @@ def dist_print(*args, **kwargs):
 
 def root_print(*args, **kwargs):
     """Print a message only if rank is 0"""
-    if is_root():
+    rank, world_size = get_rank_and_world_size()
+    if rank == 0:
         print(*args, **kwargs)
-    
+
+def dist_breakpoint(other_sleep=True):
+    """Breakpoint only if rank is 0"""
+    rank, world_size = get_rank_and_world_size()
+    if rank == 0:
+        breakpoint()
+    elif other_sleep:
+        time.sleep(1000)
 
 
 class _DistUtils(ABC):
@@ -138,6 +142,9 @@ class _TorchDistUtils(_DistUtils):
     @classmethod
     def get_world_group(cls):
         return torch_dist.group.WORLD
+    
+    def get_device(self) -> torch.device:
+        return torch.device(f"cuda:{self.get_rank() % torch.cuda.device_count()}")
 
     def _init_dist(self):
         """Init torch distributed module"""
@@ -147,7 +154,7 @@ class _TorchDistUtils(_DistUtils):
         # Init device - pytorch recommends to set it with CUDA_VISIBLE_DEVICES
         # but for our usecase we will just assign every rank to a different device
         # of course ranks/node should be equal to devices/node
-        device = rank % torch.cuda.device_count()
+        device = self.get_device()
         torch.cuda.set_device(device)
         torch.set_default_device(device)
         logger.debug(f"Rank {rank} is on device {device} ({torch.cuda.device_count()} devices available)")
@@ -156,7 +163,7 @@ class _TorchDistUtils(_DistUtils):
             backend=self.backend,
             rank=rank,
             world_size=world_size,
-            device_id=torch.device(f"cuda:{device}"),
+            device_id=device,       # Passing device ID triggers nccl comm initialization
         )
 
         if rank == 0:
@@ -177,7 +184,12 @@ class _TorchDistUtils(_DistUtils):
         pg_opts = self.get_pg_opts(params)
 
         for ranks in axis:
-            pg = torch_dist.new_group(ranks, backend=self.backend, pg_options=pg_opts)
+            pg = torch_dist.new_group(
+                ranks=ranks, 
+                backend=self.backend, 
+                pg_options=pg_opts, 
+                device_id=self.get_device(),    # Passing device ID triggers nccl comm initialization
+                )
             if pg != torch_dist.GroupMember.NON_GROUP_MEMBER:
                 my_group = pg
 

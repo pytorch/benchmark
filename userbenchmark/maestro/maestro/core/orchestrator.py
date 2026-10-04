@@ -9,9 +9,9 @@ import torch
 import pandas as pd
 
 from core.block import BlockRegistry, CommBlock, GEMMBlock
-from core.axis import Axis
+from core.axis import Axis, TorchAxis
 from core.profilers import profiler_ctx
-from core.utils.distributed import get_rank_and_world_size, _DistUtils, root_print, dist_print, _TorchNCCLDistUtils, is_root
+from core.utils.distributed import get_rank_and_world_size, _DistUtils, root_print, dist_print
 from core.utils.logging import get_logger, get_root_rank_logger
 
 
@@ -32,6 +32,7 @@ class Orchestrator:
         latency_precision: int = 3,
         stop_on_error: bool = False,
         register_buffers: bool = False,
+        axis_envs: dict[str, dict[str, str]] | None = None,
     ):
         """
         patterns: Pattern to execute
@@ -44,6 +45,7 @@ class Orchestrator:
             If not provided, the distributed utilities of the axis class will be used
         stop_on_error: Stop the execution if an error occurs in one of the patterns
         register_buffers: Register pytorch buffers (PyTorch only)
+        axis_envs: Per-axis environment variables, active while creating and using each axis
         """
         self.patterns = patterns
         self.warmup_iters = warmup_iters
@@ -54,12 +56,15 @@ class Orchestrator:
         self.stop_on_error = stop_on_error
         self.register_buffers = register_buffers
 
-        # Create axes as instances of axis_cls based on axis_cfg
+        axis_envs = axis_envs or {}
         self.axes = {
-            axis_name: self.axis_cls(groups, name=axis_name) for axis_name, groups in axes_cfg.items()
+            axis_name: self.axis_cls(groups, name=axis_name, envs=axis_envs.get(axis_name))
+            for axis_name, groups in axes_cfg.items()
         }
 
         self._tensors_pool = {}
+        self._torch_mem_pool = None
+        self._registered_groups = []
 
         self.oob_dist_utils = oob_dist_utils or self.axis_cls.dist_utils
         self.rank, self.world_size = get_rank_and_world_size()
@@ -71,7 +76,7 @@ class Orchestrator:
 
     def run_all_patterns(self):
         """Run all the patterns"""
-        all_results_df = pd.DataFrame() if is_root() else None
+        all_results_df = pd.DataFrame()
         for pattern in self.patterns:
             try:
                 results_df = self.run_pattern(pattern)
@@ -80,13 +85,10 @@ class Orchestrator:
                     raise
                 logger.exception(f"Error running pattern {pattern['name']}, skipping it, if you want to stop on error, set stop_on_error to True in YAML. Error: {e}")
             else:
-                if is_root():
-                    results_df["pattern"] = pattern["name"]
-                    all_results_df = pd.concat([all_results_df, results_df])
+                results_df["pattern"] = pattern["name"]
+                all_results_df = pd.concat([all_results_df, results_df])
         root_print("\n")
-        if is_root():
-            return all_results_df
-        return
+        return all_results_df
 
     def run_pattern(self, pattern: dict) -> Union[None, pd.DataFrame]:
         """Return results if rank=root, otherwise None"""
@@ -123,8 +125,6 @@ class Orchestrator:
         rlogger.debug(f"Benchmarking done, reporting results")
         results_df = self._measure_blocks_performance(results, blocks, streams_and_activities_per_block, iters=self.iters)
 
-        if not is_root():
-            return
 
         columns = ["Block", "Size (B)",  "Avg latency (ms)", "Min lat. (ms)", "Max lat. (ms)", "P99 lat. (ms)", "Avg BW (GB/s)"]
         col_space = 17
@@ -448,23 +448,41 @@ class Orchestrator:
             raise ValueError("No positive tensor size found across patterns operations, please check your pattern configuration")
 
         if self.register_buffers:
-            if not isinstance(self.axis_cls.dist_utils, _TorchNCCLDistUtils):
-                raise ValueError(f"Register buffers is only supported with Torch-NCCL distributed utils, not {self.axis_cls.dist_utils.__class__.__name__}")
-            # Force NCCL communicator initialization before mem pool creation;
-            # even with device_id in init_process_group, the communicator may
-            # still be lazily created and MemPool requires it up-front.
-            self.oob_dist_utils.barrier()
-            backend = self.axis_cls.dist_utils.get_world_group()._get_backend(torch.device('cuda'))
-            tensors_mem_pool = torch.cuda.MemPool(backend.mem_allocator)
-            with torch.cuda.use_mem_pool(tensors_mem_pool):
-                t = torch.ones(max(tensor_sizes), device="cuda", dtype=dtype)
-            backend.register_mem_pool(tensors_mem_pool)
+            t = self._prepare_nccl_registered_tensor(max(tensor_sizes), dtype)
         else:
             t = torch.ones(max(tensor_sizes), device="cuda", dtype=dtype)
 
             # For now dtype is hardcoded
         self._tensors_pool["main"] = t
 
+    def _prepare_nccl_registered_tensor(self, tensor_size: int, dtype: torch.dtype) -> torch.Tensor:
+        """
+        Allocate Maestro's tensor pool from PyTorch's NCCL allocator and
+        register it on the axis process groups that run communication blocks.
+        """
+        groups = [
+            axis.get_process_group()
+            for axis in self.axes.values()
+            if isinstance(axis, TorchAxis)
+        ]
+        if not groups:
+            raise RuntimeError("register_buffers=True but no Torch axis was found.")
+
+        device = torch.device("cuda", torch.cuda.current_device())
+        if self._torch_mem_pool is None:
+            backend = groups[0]._get_backend(device)
+            self._torch_mem_pool = torch.cuda.MemPool(backend.mem_allocator)
+
+        with torch.cuda.use_mem_pool(self._torch_mem_pool):
+            tensor = torch.ones(tensor_size, device="cuda", dtype=dtype)
+        torch.cuda.synchronize()
+
+        for group in groups:
+            group._get_backend(device).register_mem_pool(self._torch_mem_pool)
+
+        self._registered_groups.extend(groups)
+        rlogger.info(f"Registered Maestro NCCL tensor pool for {len(groups)} axis process group(s)")
+        return tensor
 
     def _create_blocks(self, pattern: dict):
         """Create the blocks for the pattern"""
@@ -494,6 +512,25 @@ class Orchestrator:
 
     def destroy(self):
         """Destroy the orchestrator"""
+        self._cleanup_registered_pool()
         self.oob_dist_utils.destroy()
         self.axis_cls.destroy()
 
+    def _cleanup_registered_pool(self):
+        """Deregister the tensor pool before process groups are destroyed."""
+        torch_mem_pool = self._torch_mem_pool
+        if torch_mem_pool is None:
+            return
+
+        self.axis_cls.synchronize_all()
+        device = torch.device("cuda", torch.cuda.current_device())
+        for group in self._registered_groups:
+            try:
+                group._get_backend(device).deregister_mem_pool(torch_mem_pool)
+            except Exception as exc:
+                logger.warning(f"Failed to deregister NCCL mem pool: {exc}")
+        self.axis_cls.synchronize_all()
+
+        self._tensors_pool.clear()
+        self._torch_mem_pool = None
+        self._registered_groups = []

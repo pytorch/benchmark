@@ -277,8 +277,5 @@ class TorchNNModuleBlock(_Block):
         return self._run()
 
 
-class MegatronModuleBlock(TorchNNModuleBlock):
-    pass
-
 # Load all the custom blocks
 import blocks

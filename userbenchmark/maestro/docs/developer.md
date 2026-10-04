@@ -75,11 +75,9 @@ maestro/
 │   ├── main.py                 # CLI entrypoint
 │   ├── blocks/                 # Block implementations
 │   │   ├── __init__.py
-│   │   ├── torch/              # PyTorch-based blocks
-│   │   │   ├── comm.py         # Communication blocks (AllReduce, AllGather, etc.)
-│   │   │   └── gemm.py         # GEMM compute block
-│   │   └── megatron/           # Megatron-specific blocks
-│   │       └── moe_layer.py
+│   │   └── torch/              # PyTorch-based blocks
+│   │       ├── comm.py         # Communication blocks (AllReduce, AllGather, etc.)
+│   │       └── gemm.py         # GEMM compute block
 │   ├── core/                   # Core framework
 │   │   ├── axis.py             # Axis abstraction
 │   │   ├── block.py            # Block base classes and registry
@@ -128,7 +126,6 @@ _Block (ABC)
 │       └── TorchGEMM
 ├── CopyBlock           # Memory copy operations
 └── TorchNNModuleBlock  # torch.nn.Module wrappers
-    └── MegatronModuleBlock
 ```
 
 #### Block Registry

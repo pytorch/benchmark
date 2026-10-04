@@ -1,3 +1,3 @@
-from maestro.main import cli
+from .main import cli
 
 cli()

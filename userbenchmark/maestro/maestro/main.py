@@ -9,7 +9,6 @@ from core.axis import TorchAxis
 from core.utils.logging import get_logger, get_root_rank_logger
 
 
-
 logger = get_logger(__name__)
 root_logger = get_root_rank_logger()
 
@@ -21,7 +20,7 @@ def cli():
     Maestro enables accurate performance measurement of AI workloads by benchmarking
     parallel operations on the same GPU, rather than isolated micro-benchmarks.
     
-    Use 'python -m maestro <command> --help' for more information on a specific command.
+    Use 'python main.py <command> --help' for more information on a specific command.
     """
     return
 
@@ -35,7 +34,7 @@ def list_blocks():
     that can be composed into workload patterns.
     
     Example:
-        $ python -m maestro list-blocks
+        $ python main.py list_blocks
     """
     from core.block import BlockRegistry
     print("Available blocks:")
@@ -52,7 +51,7 @@ def list_op_presets():
     commonly-used operation settings.
     
     Example:
-        $ python -m maestro list-op-presets
+        $ python main.py list_op_presets
     """
     from core.op_preset import OpPresetRegistry
     print("Available op presets:")
@@ -61,17 +60,18 @@ def list_op_presets():
 
 @cli.command(short_help="Run benchmarks with a config file.")
 @click.option('--config', '-c', type=click.Path(exists=True), required=True, help='Path to pattern/config file.')
-def run_benchmark(config: Path):
+@click.option('--save-results-to', type=str, default=None, help='Output file path (csv, json, xlsx). Overrides save_results_to in the config file.')
+def run(config: Path, save_results_to: str):
     """
     Run benchmarks for distributed patterns defined in a configuration file.
-    
+
     This command parses the provided YAML configuration file, initializes the
     specified backends (axis and profiler), and executes all defined patterns
     through the Orchestrator. Results are collected and optionally saved to
     a file.
-    
+
     The configuration file should define:
-    
+
     \b
     - patterns: List of workload patterns to benchmark
     - axes: Axis configuration for distributed execution
@@ -79,24 +79,25 @@ def run_benchmark(config: Path):
     - warmup_iters: Number of warmup iterations before measurement
     - iters: Number of measurement iterations
     - save_results_to: Optional output file path (csv, json, xlsx)
-    
+
     Supported output formats: .csv, .json, .xlsx
 
-    Returns: Results DataFrame if rank is root, otherwise None
+    The --save-results-to CLI option, if provided, takes precedence over the
+    save_results_to value in the config file.
+
     Example:
-        $ python -m maestro run-benchmark -c configs/allreduce_gemm.yaml
+        $ python main.py run -c configs/allreduce_gemm.yaml
+        $ python main.py run -c configs/allreduce_gemm.yaml --save-results-to /tmp/results_%D.csv
     """
-    return _run_benchmark(config)
+    return _run_benchmark(config, save_results_to)
 
-def _run_benchmark(config: Path):
-    if not config.exists():
-        raise ValueError(f"Config file {config} does not exist")
 
+def _run_benchmark(config: Path, save_results_to: str = None):
     try:
-        config = parse_config(config)
+        config = parse_config(config, save_results_to_override=save_results_to)
     except (ValueError, KeyError, TypeError) as e:
         logger.exception(f"Error parsing config: {e}")
-        logger.info("Usage: python -m maestro run-benchmark -c <config_file>")
+        logger.info("Usage: python main.py run -c <config_file>")
         sys.exit(1)
     except Exception as e:
         logger.exception(f"Unexpected error parsing config: {e}")
@@ -124,6 +125,7 @@ def _run_benchmark(config: Path):
     orchestrator = Orchestrator(
         patterns=config["patterns"], 
         axes_cfg=config["axes"],
+        axis_envs=config["axis_envs"],
         profiler=profiler, 
         axis_cls=axis_cls, 
         warmup_iters=config["warmup_iters"], 
@@ -133,8 +135,6 @@ def _run_benchmark(config: Path):
         stop_on_error=config["stop_on_error"]
     )
     results_df = orchestrator.run_all_patterns()
-    if results_df is None:
-        return
 
     save_results_to = config["save_results_to"]
     if save_results_to:
@@ -154,7 +154,6 @@ def _run_benchmark(config: Path):
     orchestrator.destroy()
 
     return results_df
-
 
 
 if __name__ == '__main__':

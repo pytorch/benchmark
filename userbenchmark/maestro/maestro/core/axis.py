@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Iterator, ContextManager
 from contextlib import contextmanager
 import contextvars
+import os
 import torch
 
 from core.utils.distributed import nccl_torch_dist_utils
@@ -14,11 +15,27 @@ logger = get_logger(__name__)
 current_axis = contextvars.ContextVar("current_axis", default=None)
 
 
+@contextmanager
+def _temporary_environ(envs: dict[str, str]) -> Iterator[None]:
+    """Temporarily apply axis-specific environment variables."""
+    if not envs:
+        yield
+        return
+
+    envs_before = os.environ.copy()
+    os.environ.update(envs)
+    try:
+        yield
+    finally:
+        os.environ.clear()
+        os.environ.update(envs_before)
+
+
 class Axis(ABC):
 
     dist_utils = None
 
-    def __init__(self, groups: list[list[int]], name: str = ""):
+    def __init__(self, groups: list[list[int]], name: str = "", envs: dict[str, str] | None = None):
         """
         Axis is a set of teams created using the same pattern. Each axis can execute blocks independently from the other axes (i.e it is bound to a GPU single stream)
         For now, each rank must be in one group of the axis
@@ -28,8 +45,11 @@ class Axis(ABC):
 
         self.groups = groups
         self.name = name
+        self.envs = envs or {}
 
-        self.my_group = self.dist_utils.create_axis(groups)
+        with _temporary_environ(self.envs):
+            self.my_group = self.dist_utils.create_axis(groups)
+
         r = self.get_rank()
         for group in self.groups:
             if r in group:
@@ -106,9 +126,9 @@ class Axis(ABC):
 class TorchAxis(Axis):
     dist_utils = nccl_torch_dist_utils
 
-    def __init__(self, groups: list[list[int]], name: str = ""):
+    def __init__(self, groups: list[list[int]], name: str = "", envs: dict[str, str] | None = None):
 
-        super().__init__(groups, name=name)
+        super().__init__(groups, name=name, envs=envs)
         self.stream = torch.cuda.Stream()
     
     def get_process_group(self) -> torch.distributed.ProcessGroup:

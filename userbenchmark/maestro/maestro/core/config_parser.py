@@ -169,9 +169,10 @@ def parse_backends(backends: dict) -> dict:
 
     return default_backends
 
-def parse_config(config: Union[Path, dict, str]) -> dict:
+def parse_config(config: Union[Path, dict, str], save_results_to_override: str = None) -> dict:
     """
-    config: Can be a config dictionary, a path to a config file as path or str 
+    config: Can be a config dictionary, a path to a config file as path or str
+    save_results_to_override: If provided, takes precedence over the config file's save_results_to value
     Parse configuration and return a clean configuration dictionary with the following structure:
     {
         "pattern": pattern,
@@ -183,11 +184,19 @@ def parse_config(config: Union[Path, dict, str]) -> dict:
             config = yaml.safe_load(open(Path(config)))
         except Exception as e:
             raise ValueError(f"Error loading config from file {config}: {e}")
+
+    if save_results_to_override:
+        config["save_results_to"] = save_results_to_override
     
     axes = {}
+    axis_envs = {}
     for name, axis_config in config.get("axes", {}).items():
-        axis = parse_axis_config(axis_config)
-        axes[name] = axis
+        axes[name] = parse_axis_config(axis_config)
+        envs = axis_config.get("envs")
+        if envs is not None:
+            if not isinstance(envs, dict):
+                raise ValueError(f"Axis {name} envs must be a dictionary")
+            axis_envs[name] = {str(k): str(v) for k, v in envs.items()}
     
     patterns = config.get("patterns")
     if not patterns:
@@ -212,6 +221,7 @@ def parse_config(config: Union[Path, dict, str]) -> dict:
 
     out_config = {
         "axes": axes,
+        "axis_envs": axis_envs,
         "save_results_to": save_results_to,
         "stop_on_error": config.get("stop_on_error", False),
         "patterns": parsed_patterns,
@@ -222,4 +232,3 @@ def parse_config(config: Union[Path, dict, str]) -> dict:
         "register_buffers": config.get("register_buffers", False),
     }
     return out_config
-

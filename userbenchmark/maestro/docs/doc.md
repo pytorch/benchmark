@@ -130,8 +130,6 @@ Operation parameters are:
   vector_size: 16M    # block-specific parameters
 ```
 
-> Be careful, some blocks like `MegatronMoeLayerBlock` won't allow overlap of the blocks that are enqueued after him, this is a known issue that may be resolved at some point, for now, please be aware of it and always place blocks like this at the end of the pattern, read the docstring of the block to check this.
-
 ### Backends config
 Under `backends` you can override runtime implementations by specifying the backend's `name` and the according parameters, here is an exhaustive list of the parameters and their choices:
 

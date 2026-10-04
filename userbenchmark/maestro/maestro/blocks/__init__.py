@@ -9,7 +9,3 @@ from .torch.comm import (
 from .torch.gemm import (
     TorchGEMM,
 )
-
-from .megatron.moe_layer import (
-    MegatronMoELayerBlock
-)
