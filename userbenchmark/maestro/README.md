@@ -1,6 +1,6 @@
-# Maestro
+# NCCL Multi Test - Maestro
 
-Maestro is a benchmarking framework for overlapping communication/compute operations in distributed environments.
+Maestro is a benchmarking framework for parallel communication/compute operations on the same GPU.  
 This presents a more accurate way to measure performance of AI workloads compared to the micro-benchmarking which measures performance of standalone operations.
 It allows a user to define a workload pattern, then benchmark performance of every running block.
 
@@ -12,5 +12,5 @@ python run_benchmark.py maestro-benchmark <config.yaml>
 ```
 
 See the [documentation](docs/) for more:
-- [Installation & Usage](docs/doc.md)
+- [General documentation](docs/doc.md)
 - [Developer guide](docs/developer.md)

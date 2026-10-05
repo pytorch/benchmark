@@ -61,7 +61,7 @@ warmup_iters: 20        # warmup iterations  (default 20)
 latency_precision: 3    # Defines the precision of the reported latency (default 3)
 stop_on_error: false    # Stop execution if one pattern fails (default false)
 register_buffers: false # Enable NCCL user buffer registration (default false, see below)
-save_results_to: /path/to/results.csv # Must be an absolute path. If provided, will save the results as a CSV, if the path doesn't exist it will be created. Don't forget to mount this path if you use a container
+save_results_to: /path/to/results.csv # Must be an absolute path. If provided, will save the results in the format matching the file extension (csv, json, xlsx; unknown extensions fall back to csv), if the path doesn't exist it will be created. %D will be replaced by the datetime. Don't forget to mount this path if you use a container. Can be overridden with the `--save-results-to` CLI flag, which takes precedence over this value.
 backends:               # optional
   backend_name: <backend_config>
 axes: {}                # required - axis definitions (see below)
@@ -171,11 +171,11 @@ For each block the average, minimum, maximum, and 99th percentile (P99) latencie
 
 Example output (several patterns, only the second one has shared bandwidth and overlap percentage):
 ```
-Pattern: moe+allgather
+Pattern: gemm+allgather
 Block            | Size (B)         | Avg latency (ms) | Min lat. (ms)    | Max lat. (ms)    | P99 lat. (ms)    | Avg BW (GB/s)
 ---------------------------------------------------------------------------------------------------------------------------------
 dp_allgather     | 250M             | 6.0              | 5.6              | 6.2              | 6.2              | 33.0
-moe_layer_1      | N/A              | 24.0             | 20.3             | 27.5             | 27.3             | N/A
+gemm_1           | N/A              | 24.0             | 20.3             | 27.5             | 27.3             | N/A
 
 
 Pattern: AG+RS
