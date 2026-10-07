@@ -385,8 +385,10 @@ class ModelTask(base_task.TaskBase):
         test: str,
         device: str,
         batch_size: Optional[int] = None,
-        extra_args: List[str] = [],
+        extra_args: List[str] = None,
     ) -> None:
+        if extra_args is None:
+            extra_args = []
         Model = globals()["Model"]
         model = Model(
             test=test, device=device, batch_size=batch_size, extra_args=extra_args
@@ -733,7 +735,7 @@ def get_metadata_from_yaml(path):
     md = None
     if os.path.exists(metadata_path):
         with open(metadata_path, "r") as f:
-            md = yaml.load(f, Loader=yaml.FullLoader)
+            md = yaml.safe_load(f, Loader=yaml.FullLoader)
     return md
 
 

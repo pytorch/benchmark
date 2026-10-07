@@ -12,7 +12,9 @@ class CPUMonitor(Monitor):
     A CPU monitor that uses psutil to monitor CPU usage
     """
 
-    def __init__(self, frequency, metrics_needed=[], monitored_pid=None):
+    def __init__(self, frequency, metrics_needed=None, monitored_pid=None):
+        if metrics_needed is None:
+            metrics_needed = []
         super().__init__(frequency, metrics_needed)
         # It is a raw record list. [timestamp, cpu_memory_usage, cpu_available_memory]
         self._cpu_records = []
