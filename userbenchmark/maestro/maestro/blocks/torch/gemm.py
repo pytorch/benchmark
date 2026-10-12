@@ -1,7 +1,7 @@
 import torch
-from core.block import GEMMBlock
-from core.axis import TorchAxis
-from core.utils.logging import get_logger
+from ...core.block import GEMMBlock
+from ...core.axis import TorchAxis
+from ...core.utils.logging import get_logger
 
 import torch
 

@@ -71,7 +71,7 @@ Maestro follows a modular architecture designed to benchmark parallel communicat
 
 ```
 maestro/
-├── src/
+├── maestro/
 │   ├── main.py                 # CLI entrypoint
 │   ├── blocks/                 # Block implementations
 │   │   ├── __init__.py
@@ -87,8 +87,7 @@ maestro/
 │   │   ├── profilers/          # Profiler implementations
 │   │   │   ├── __init__.py
 │   │   │   ├── base.py         # Profiler base class
-│   │   │   ├── cupti.py        # CUPTI-based profiler
-│   │   │   └── torch.py        # PyTorch profiler
+│   │   │   └── cupti.py        # CUPTI-based profiler
 │   │   └── utils/              # Utility modules
 │   │       ├── distributed.py  # Distributed utilities
 │   │       ├── format.py       # Size formatting utilities
@@ -135,13 +134,13 @@ Blocks are automatically registered via the `BlockRegistry` when they define a `
 ```python
 class BlockRegistry:
     _registry = {}
-    
+
     @classmethod
     def register(cls, block: type):
         registry_name = getattr(block, "registry_name", None)
         if registry_name:
             cls._registry[registry_name] = block
-    
+
     @classmethod
     def get_block_cls(cls, name: str) -> type:
         return cls._registry[name]
@@ -200,7 +199,7 @@ class TorchAxis(Axis):
     def __init__(self, groups: list[list[int]], name: str = ""):
         super().__init__(groups, name=name)
         self.stream = torch.cuda.Stream()  # Dedicated stream
-    
+
     def _axis_ctx(self):
         return torch.cuda.stream(self.stream)
 ```
@@ -244,26 +243,30 @@ The **Orchestrator** (`core/orchestrator.py`) is the central coordinator that:
 def run_pattern(self, pattern: dict):
     # 1. Create blocks from pattern ops
     blocks = self._create_blocks(pattern)
-    
+
     # 2. Warmup (independent of measurement warmup)
     for _ in range(20):
         self._execute(blocks)
-    
+
     # 3. Match streams to blocks
     streams_and_activities_per_block = self._match_streams_to_blocks(blocks)
-    
+
     # 4. Benchmark with profiler
     with self.profiler:
         self._execute(blocks, iters=self.warmup_iters)
         self.profiler.reset()
         self._execute(blocks, iters=self.iters)
-    
+
     # 5. Measure and report
     results = self.profiler.get_results()
     return self._measure_blocks_performance(results, blocks, ...)
 ```
 
 ---
+
+### GPU Start Gate
+
+The orchestrator records a CUDA event behind a stream memory wait on mapped pinned host memory. Every participating axis waits on that recorded event. Each block runs once without the gate to initialize libraries and allocation caches before any held launch. The CPU opens the gate only after enqueueing all iterations, including their barrier fences, and also opens it if enqueue raises. The release does not depend on GPU work and introduces no profiling kernel, memcpy, or memset. CUPTI activities on streams not mapped to workload blocks are ignored, as in the original stream mapper. Missing or extra activities on mapped workload streams remain errors. The gate aligns readiness of the local axes; it does not guarantee identical kernel start timestamps or synchronize clocks across hosts.
 
 ### Profilers
 
@@ -276,19 +279,19 @@ class profiler_ctx(ABC):
     def __init__(self, output_dir: Optional[Path] = None):
         self._results = []
         self.output_dir = output_dir
-    
+
     @abstractmethod
     def __enter__(self):
         pass
-    
+
     @abstractmethod
     def __exit__(self, exc_type, exc_value, traceback):
         # Save results to self._results
         pass
-    
+
     def get_results(self) -> list[dict]:
         return self._results
-    
+
     def reset(self):
         self._results = []
 ```
@@ -321,49 +324,54 @@ Select the appropriate base class for your block:
 
 #### Step 2: Implement the Block
 
-Create your block in the appropriate directory under `src/blocks/`:
+Create your block in the appropriate directory under `maestro/blocks/`:
 
 ```python
-# src/blocks/torch/my_block.py
-from core.block import CommBlock
-from core.axis import TorchAxis
+# maestro/blocks/torch/my_block.py
+import torch
+from userbenchmark.maestro.maestro.core.block import CommBlock
+from userbenchmark.maestro.maestro.core.axis import TorchAxis
 
 class MyCustomBlock(CommBlock):
     """Custom communication block"""
-    
+
     registry_name = "my_custom_block"  # Used in YAML configs
-    
+
     api_params_schema = {
         "vector_size": {},  # Required parameter
         "custom_param": {"default": 10},  # Optional with default
     }
-    
+
     def __init__(self, axis: TorchAxis, src_buf, dst_buf, custom_param: int, name: str = ""):
         super().__init__(axis, src_buf, dst_buf, name)
         self.custom_param = custom_param
-    
+
     def run(self):
         """Execute the GPU operation"""
         with self.axis.use_axis():
             # Your CUDA operation here
             pass
-    
+
     @classmethod
-    def get_tensor_size(cls, api_params: dict) -> int:
-        """Return total tensor size needed"""
-        return api_params["vector_size"]
-    
+    def get_tensor_size(cls, api_params: dict, axis=None) -> int:
+        """Reserve separate source and destination regions."""
+        return super().get_tensor_size(api_params, axis)
+
     @classmethod
     def from_api_params(cls, axis, name: str, api_params: dict, cached_tensor=None):
         """Factory method to create block from config"""
         api_params = cls._enrich_api_params_schema(api_params)
-        
+
+        src_size = cls.get_src_buf_size(api_params["vector_size"], axis.team_size())
+        dst_size = cls.get_dst_buf_size(api_params["vector_size"], axis.team_size())
         if cached_tensor is None:
-            cached_tensor = torch.zeros(cls.get_tensor_size(api_params), device="cuda")
-        
-        src_buf = cached_tensor[:api_params["vector_size"]]
-        dst_buf = cached_tensor[:api_params["vector_size"]]
-        
+            cached_tensor = torch.zeros(
+                cls.get_tensor_size(api_params, axis), device="cuda", dtype=torch.float16
+            )
+
+        src_buf = cached_tensor[:src_size]
+        dst_buf = cached_tensor[src_size:src_size + dst_size]
+
         return cls(
             axis=axis,
             src_buf=src_buf,
@@ -371,7 +379,7 @@ class MyCustomBlock(CommBlock):
             custom_param=api_params["custom_param"],
             name=name
         )
-    
+
     @staticmethod
     def get_bus_bw_factor(team_size: int):
         """Bus bandwidth factor for BW calculation"""
@@ -383,7 +391,7 @@ class MyCustomBlock(CommBlock):
 Import your block in the package's `__init__.py`:
 
 ```python
-# src/blocks/torch/__init__.py
+# maestro/blocks/torch/__init__.py
 from .comm import *
 from .gemm import *
 from .my_block import MyCustomBlock  # Add this line
@@ -407,27 +415,27 @@ patterns:
 #### Step 1: Create the Profiler Class
 
 ```python
-# src/core/profilers/my_profiler.py
-from core.profilers.base import profiler_ctx
+# maestro/core/profilers/my_profiler.py
+from userbenchmark.maestro.maestro.core.profilers.base import profiler_ctx
 from pathlib import Path
 from typing import Optional
 
 class MyProfiler(profiler_ctx):
     """Custom profiler implementation"""
-    
+
     def __init__(self, output_dir: Optional[Path] = None):
         super().__init__(output_dir)
         # Initialize profiler-specific state
-    
+
     def __enter__(self):
         """Start profiling"""
         # Enable profiling
         return self
-    
+
     def __exit__(self, exc_type, exc_value, traceback):
         """Stop profiling and collect results"""
         results = []
-        
+
         # Collect profiling data
         for activity in self._get_activities():
             results.append({
@@ -437,10 +445,10 @@ class MyProfiler(profiler_ctx):
                 "end_ns": activity.end,
                 "duration_ns": activity.end - activity.start,
             })
-        
+
         self._save_results(results)
         self.save_trace()
-    
+
     def _save_trace(self, output_file: Path):
         """Optional: Save trace file for visualization"""
         # Implement trace export
@@ -450,13 +458,13 @@ class MyProfiler(profiler_ctx):
 #### Step 2: Register in main.py
 
 ```python
-# src/main.py
+# maestro/main.py
 profiler_backend = config["backends"]["profiler"]["name"]
 if profiler_backend == "cupti":
-    from core.profilers import CuptiProfiler 
+    from userbenchmark.maestro.maestro.core.profilers import CuptiProfiler
     profiler = CuptiProfiler(output_dir=config["backends"]["profiler"]["output_dir"])
 elif profiler_backend == "my_profiler":  # Add this
-    from core.profilers.my_profiler import MyProfiler
+    from userbenchmark.maestro.maestro.core.profilers.my_profiler import MyProfiler
     profiler = MyProfiler(output_dir=config["backends"]["profiler"]["output_dir"])
 else:
     raise ValueError(f"Invalid profiler backend: {profiler_backend}")
@@ -465,7 +473,7 @@ else:
 #### Step 3: Update __init__.py
 
 ```python
-# src/core/profilers/__init__.py
+# maestro/core/profilers/__init__.py
 from .base import profiler_ctx
 from .cupti import CuptiProfiler
 from .my_profiler import MyProfiler  # Add this
@@ -480,14 +488,14 @@ Operation presets auto-generate operations based on high-level parameters (e.g.,
 #### Step 1: Create the Preset Class
 
 ```python
-# src/ops_presets/my_preset.py
-from core.op_preset import OpPreset
+# maestro/ops_presets/my_preset.py
+from userbenchmark.maestro.maestro.core.op_preset import OpPreset
 
 class MyOpPreset(OpPreset):
     """Custom operation preset"""
-    
+
     name = "my_preset"  # Used in YAML configs
-    
+
     params_schema = {
         "axis_name": {
             "required": True,
@@ -502,28 +510,28 @@ class MyOpPreset(OpPreset):
             "description": "An optional parameter",
         },
     }
-    
+
     @classmethod
     def create_op(cls, params: dict, axes_config: dict) -> tuple[dict, list]:
         """
         Generate axes configuration and operations list.
-        
+
         Args:
             params: Parameters from YAML configuration
             axes_config: Existing axes configuration
-        
+
         Returns:
             tuple: (new_axes_config, ops_list)
         """
         cls.validate_params(params)
-        
+
         axis_name = params["axis_name"]
         size = params["size"]
-        
+
         # Validate axis exists
         if axis_name not in axes_config:
             raise ValueError(f"Axis {axis_name} not defined")
-        
+
         # Generate operations
         ops = [
             {
@@ -540,7 +548,7 @@ class MyOpPreset(OpPreset):
                 "mat_b_shape": [4096, 1024],
             },
         ]
-        
+
         # Return empty dict if no new axes needed
         new_axes = {}
         return new_axes, ops
@@ -549,7 +557,7 @@ class MyOpPreset(OpPreset):
 #### Step 2: Register the Preset
 
 ```python
-# src/ops_presets/__init__.py
+# maestro/ops_presets/__init__.py
 from .moe import MOEOpPreset
 from .my_preset import MyOpPreset  # Add this
 ```
@@ -576,47 +584,47 @@ Axis backends must implement the `Axis` interface.
 #### Step 1: Create the Axis Class
 
 ```python
-# src/core/axis.py (or separate file)
-from core.axis import Axis
+# maestro/core/axis.py (or separate file)
+from userbenchmark.maestro.maestro.core.axis import Axis
 from your_backend import dist_utils as my_dist_utils
 
 class MyBackendAxis(Axis):
     """Custom axis backend"""
-    
+
     dist_utils = my_dist_utils  # Your distributed utilities
-    
+
     def __init__(self, groups: list[list[int]], name: str = ""):
         super().__init__(groups, name=name)
         # Initialize backend-specific resources
         self.stream = create_stream()  # Your stream creation
-    
+
     @staticmethod
     def create_event():
         """Create synchronization event"""
         return MyEvent()
-    
+
     @staticmethod
     def record_event(event):
         """Record event on current stream"""
         event.record()
-    
+
     def wait_event(self, event):
         """Wait for event on this axis's stream"""
         self.stream.wait_event(event)
-    
+
     def _axis_ctx(self):
         """Context manager for using this axis"""
         return stream_context(self.stream)
-    
+
     def synchronize(self):
         """Synchronize this axis's stream"""
         self.stream.synchronize()
-    
+
     @classmethod
     def synchronize_all(cls):
         """Synchronize all GPU streams"""
         device_synchronize()
-    
+
     @classmethod
     def destroy(cls):
         """Cleanup resources"""
@@ -626,12 +634,12 @@ class MyBackendAxis(Axis):
 #### Step 2: Register in main.py
 
 ```python
-# src/main.py
+# maestro/main.py
 axis_backend = config["backends"]["axis"]["name"]
 if axis_backend == "torch":
     axis_cls = TorchAxis
 elif axis_backend == "my_backend":  # Add this
-    from core.axis import MyBackendAxis
+    from userbenchmark.maestro.maestro.core.axis import MyBackendAxis
     axis_cls = MyBackendAxis
 else:
     raise ValueError(f"Invalid axis backend: {axis_backend}")
@@ -662,16 +670,18 @@ YAML File → parse_config() → Internal Config Dict
 | `parse_axis_config(axis_config)` | Convert axis config to teams list |
 | `parse_pattern(pattern, axes)` | Process pattern, unwrap presets, convert sizes |
 | `parse_op_preset(op, axes)` | Expand operation preset into operations |
-| `parse_backends(backends)` | Apply backend defaults |
+| `parse_backends(backends, timestamp)` | Apply backend defaults |
 
 ### Size Parsing
 
-The `parse_size()` utility supports human-readable sizes:
+The `parse_size()` utility accepts nonnegative integral byte sizes. `K/M/G` and `KiB/MiB/GiB` use binary powers of 1024. Fractional magnitudes are accepted only when they resolve to whole bytes:
 
 ```python
 "16M"  → 16 * 1024 * 1024
 "4G"   → 4 * 1024 * 1024 * 1024
 "256K" → 256 * 1024
+"1MiB" → 1024 * 1024
+"1.5M" → 1572864
 ```
 
 ---
@@ -690,10 +700,10 @@ export MAESTRO_LOG_LEVEL=DEBUG  # DEBUG, INFO, WARNING, ERROR, CRITICAL
 
 ```bash
 # List all registered blocks
-python main.py list-blocks
+python -m userbenchmark.maestro.maestro list-blocks
 
 # List all operation presets
-python main.py list-op-presets
+python -m userbenchmark.maestro.maestro list-op-presets
 ```
 
 ### Debugging Tips
@@ -749,7 +759,7 @@ patterns:
 Use the provided loggers:
 
 ```python
-from core.utils.logging import get_logger, get_root_rank_logger
+from userbenchmark.maestro.maestro.core.utils.logging import get_logger, get_root_rank_logger
 
 logger = get_logger(__name__)        # All ranks
 rlogger = get_root_rank_logger()     # Root rank only

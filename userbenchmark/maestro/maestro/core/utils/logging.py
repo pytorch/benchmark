@@ -2,7 +2,7 @@ import logging
 import sys
 import os
 
-from core.utils.distributed import get_rank_and_world_size
+from .distributed import get_rank_and_world_size
 
 
 rank, world_size = get_rank_and_world_size()

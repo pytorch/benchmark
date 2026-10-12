@@ -2,11 +2,10 @@ import click
 from pathlib import Path
 import yaml
 import pprint
-import sys
-from core.config_parser import parse_config
-from core.orchestrator import Orchestrator
-from core.axis import TorchAxis 
-from core.utils.logging import get_logger, get_root_rank_logger
+from .core.config_parser import parse_config
+from .core.orchestrator import Orchestrator
+from .core.axis import TorchAxis
+from .core.utils.logging import get_logger, get_root_rank_logger
 
 
 logger = get_logger(__name__)
@@ -16,11 +15,11 @@ root_logger = get_root_rank_logger()
 def cli():
     """
     Maestro CLI - A benchmarking framework for parallel communication/compute operations.
-    
+
     Maestro enables accurate performance measurement of AI workloads by benchmarking
     parallel operations on the same GPU, rather than isolated micro-benchmarks.
-    
-    Use 'python main.py <command> --help' for more information on a specific command.
+
+    Use 'python -m maestro <command> --help' for more information on a specific command.
     """
     return
 
@@ -28,15 +27,15 @@ def cli():
 def list_blocks():
     """
     List all available blocks registered in the BlockRegistry.
-    
+
     Blocks are the fundamental building units in Maestro patterns. Each block
     represents a discrete operation (e.g., NCCL collective, GEMM, custom kernel)
     that can be composed into workload patterns.
-    
+
     Example:
-        $ python main.py list_blocks
+        $ python -m maestro list-blocks
     """
-    from core.block import BlockRegistry
+    from .core.block import BlockRegistry
     print("Available blocks:")
     for block in BlockRegistry.get_all_blocks():
         print(f"- {block.registry_name}")
@@ -45,22 +44,22 @@ def list_blocks():
 def list_op_presets():
     """
     List all available operation presets registered in the OpPresetRegistry.
-    
+
     Op presets define pre-configured operation parameters that can be reused
     across different patterns. They simplify configuration by providing
     commonly-used operation settings.
-    
+
     Example:
-        $ python main.py list_op_presets
+        $ python -m maestro list-op-presets
     """
-    from core.op_preset import OpPresetRegistry
+    from .core.op_preset import OpPresetRegistry
     print("Available op presets:")
     for op_preset in OpPresetRegistry.get_all_op_presets():
         print(f"- {op_preset.name}")
 
 @cli.command(short_help="Run benchmarks with a config file.")
 @click.option('--config', '-c', type=click.Path(exists=True), required=True, help='Path to pattern/config file.')
-@click.option('--save-results-to', type=str, default=None, help='Output file path (csv, json, xlsx). Overrides save_results_to in the config file.')
+@click.option('--save-results-to', type=str, default=None, help='Output file path (csv, json). Overrides save_results_to in the config file.')
 def run(config: Path, save_results_to: str):
     """
     Run benchmarks for distributed patterns defined in a configuration file.
@@ -78,31 +77,22 @@ def run(config: Path, save_results_to: str):
     - backends: Backend settings (axis type, profiler)
     - warmup_iters: Number of warmup iterations before measurement
     - iters: Number of measurement iterations
-    - save_results_to: Optional output file path (csv, json, xlsx)
+    - save_results_to: Optional output file path (csv, json)
 
-    Supported output formats: .csv, .json, .xlsx
+    Supported output formats: .csv, .json
 
     The --save-results-to CLI option, if provided, takes precedence over the
     save_results_to value in the config file.
 
     Example:
-        $ python main.py run -c configs/allreduce_gemm.yaml
-        $ python main.py run -c configs/allreduce_gemm.yaml --save-results-to /tmp/results_%D.csv
+        $ python -m maestro run -c configs/allreduce_gemm.yaml
+        $ python -m maestro run -c configs/allreduce_gemm.yaml --save-results-to /tmp/results_%D.csv
     """
     return _run_benchmark(config, save_results_to)
 
 
 def _run_benchmark(config: Path, save_results_to: str = None):
-    try:
-        config = parse_config(config, save_results_to_override=save_results_to)
-    except (ValueError, KeyError, TypeError) as e:
-        logger.exception(f"Error parsing config: {e}")
-        logger.info("Usage: python main.py run -c <config_file>")
-        sys.exit(1)
-    except Exception as e:
-        logger.exception(f"Unexpected error parsing config: {e}")
-        raise
-
+    config = parse_config(config, save_results_to_override=save_results_to)
 
     ########################## Load backends ##########################
     axis_backend = config["backends"]["axis"]["name"]
@@ -110,10 +100,10 @@ def _run_benchmark(config: Path, save_results_to: str = None):
         axis_cls = TorchAxis
     else:
         raise ValueError(f"Invalid axis backend: {axis_backend}")
-    
+
     profiler_backend = config["backends"]["profiler"]["name"]
     if profiler_backend == "cupti":
-        from core.profilers import CuptiProfiler 
+        from .core.profilers import CuptiProfiler
         profiler = CuptiProfiler(output_dir=config["backends"]["profiler"]["output_dir"])
     else:
         raise ValueError(f"Invalid profiler backend: {profiler_backend}")
@@ -123,12 +113,13 @@ def _run_benchmark(config: Path, save_results_to: str = None):
 
     # Launch orchestrator
     orchestrator = Orchestrator(
-        patterns=config["patterns"], 
+        patterns=config["patterns"],
         axes_cfg=config["axes"],
         axis_envs=config["axis_envs"],
-        profiler=profiler, 
-        axis_cls=axis_cls, 
-        warmup_iters=config["warmup_iters"], 
+        axis_params=config["axis_params"],
+        profiler=profiler,
+        axis_cls=axis_cls,
+        warmup_iters=config["warmup_iters"],
         iters=config["iters"],
         latency_precision=config["latency_precision"],
         register_buffers=config["register_buffers"],
@@ -137,17 +128,14 @@ def _run_benchmark(config: Path, save_results_to: str = None):
     results_df = orchestrator.run_all_patterns()
 
     save_results_to = config["save_results_to"]
-    if save_results_to:
+    if save_results_to and axis_cls.get_rank() == 0:
         extension = save_results_to.suffix.lower().lstrip(".")
         if extension == "csv":
             results_df.to_csv(save_results_to, index=False)
         elif extension == "json":
-            results_df.to_json(save_results_to, index=False)
-        elif extension == "xlsx":
-            results_df.to_excel(save_results_to, index=False)
+            results_df.to_json(save_results_to, orient="records", index=False)
         else:
-            results_df.to_csv(save_results_to, index=False)
-            logger.error(f"Invalid extension: {extension}, supported extensions are: csv, json, saving as csv.")
+            raise ValueError(f"Invalid extension: {extension}, supported extensions are: csv, json")
 
         root_logger.info(f"Saved results to {config['save_results_to'].absolute()}")
 

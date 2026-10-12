@@ -1,7 +1,8 @@
 from .torch.comm import (
     TorchAllToAll,
     TorchAllGather,
-    #TorchAllReduce,
+    TorchAllReduce,
+    TorchReduce,
     TorchReduceScatter,
     TorchSendRecvRing,
 )

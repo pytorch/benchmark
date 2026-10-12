@@ -6,26 +6,25 @@ from typing import Optional, Any
 import torch
 import torch.distributed as torch_dist
 
-from core.utils.async_work import AsyncWorkHandle, AsyncWorkHandleType
+from .async_work import AsyncWorkHandle, AsyncWorkHandleType
 
 # Has to be above import of get_logger to avoid circular import
 def get_rank_and_world_size():
     """Parse rank and world size from environment variables"""
-    # Slurm 
-    if os.environ.get("SLURM_PROCID"):
+    # torchrun variables take precedence when launched inside a SLURM allocation.
+    if "RANK" in os.environ:
+        rank = int(os.environ["RANK"])
+        world_size = int(os.environ["WORLD_SIZE"])
+    elif "SLURM_PROCID" in os.environ:
         rank = int(os.environ["SLURM_PROCID"])
         world_size = int(os.environ["SLURM_NTASKS"])
-    # Torchrun
-    elif os.environ.get("RANK"):
-        rank = int(os.environ.get("RANK"))
-        world_size = int(os.environ.get("WORLD_SIZE"))
     else:
         return 0, 1
     
     return rank, world_size
 
 
-from core.utils.logging import get_logger
+from .logging import get_logger
 logger = get_logger(__name__)
 
 
@@ -144,7 +143,15 @@ class _TorchDistUtils(_DistUtils):
         return torch_dist.group.WORLD
     
     def get_device(self) -> torch.device:
-        return torch.device(f"cuda:{self.get_rank() % torch.cuda.device_count()}")
+        visible_devices = torch.cuda.device_count()
+        if visible_devices == 0:
+            raise RuntimeError("No CUDA devices are visible")
+        # SLURM may give each task one visible GPU, whose CUDA ordinal is zero.
+        local_rank = int(os.environ.get("LOCAL_RANK", os.environ.get("SLURM_LOCALID", "0")))
+        device_index = 0 if visible_devices == 1 else local_rank
+        if not 0 <= device_index < visible_devices:
+            raise ValueError(f"Local rank {local_rank} is outside {visible_devices} visible CUDA devices")
+        return torch.device(f"cuda:{device_index}")
 
     def _init_dist(self):
         """Init torch distributed module"""
@@ -184,12 +191,11 @@ class _TorchDistUtils(_DistUtils):
         pg_opts = self.get_pg_opts(params)
 
         for ranks in axis:
-            pg = torch_dist.new_group(
-                ranks=ranks, 
-                backend=self.backend, 
-                pg_options=pg_opts, 
-                device_id=self.get_device(),    # Passing device ID triggers nccl comm initialization
-                )
+            options = {"ranks": ranks, "backend": self.backend, "pg_options": pg_opts}
+            if self.backend == "nccl":
+                # Bind NCCL eagerly to this process's selected CUDA device.
+                options["device_id"] = self.get_device()
+            pg = torch_dist.new_group(**options)
             if pg != torch_dist.GroupMember.NON_GROUP_MEMBER:
                 my_group = pg
 
@@ -221,7 +227,7 @@ class _TorchNCCLDistUtils(_TorchDistUtils):
         if not params:
             return None
         opts = torch_dist.ProcessGroupNCCL.Options()
-        if params.get("traffic_class"):
+        if "traffic_class" in params:
             opts.config.traffic_class = params["traffic_class"]
         return opts
 

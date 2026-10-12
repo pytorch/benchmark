@@ -1,11 +1,11 @@
 from abc import ABC, abstractmethod, ABCMeta
 from typing import Optional
 import torch
-from core.utils.logging import get_logger, get_root_rank_logger
-from core.axis import Axis
-from core.utils.format import format_size
+from .utils.logging import get_logger, get_root_rank_logger
+from .axis import Axis
+from .utils.format import format_size
 
-from core.axis import TorchAxis
+from .axis import TorchAxis
 
 logger = get_logger(__name__)
 rlogger = get_root_rank_logger()
@@ -183,8 +183,13 @@ class CommBlock(_Block):
         return bus_bw
     
     @classmethod
-    def get_tensor_size(cls, api_params: dict) -> int:
-        return api_params["vector_size"]
+    def get_tensor_size(cls, api_params: dict, axis: "Axis" = None) -> int:
+        # Without an axis, reserve enough storage for two full vectors.
+        if axis is None:
+            return 2 * api_params["vector_size"]
+        team_size = axis.team_size()
+        return (cls.get_src_buf_size(api_params["vector_size"], team_size)
+                + cls.get_dst_buf_size(api_params["vector_size"], team_size))
     
     @classmethod
     def from_api_params(cls, axis: "Axis", name: str, api_params: dict, cached_tensor: Optional[torch.Tensor] = None):
@@ -192,10 +197,13 @@ class CommBlock(_Block):
         dst_buf_size = cls.get_dst_buf_size(api_params["vector_size"], axis.team_size())
 
         if cached_tensor is None:
-            cached_tensor = torch.zeros(cls.get_tensor_size(api_params), device="cuda")
+            cached_tensor = torch.zeros(cls.get_tensor_size(api_params, axis), device="cuda", dtype=torch.float16)
 
+        required_size = src_buf_size + dst_buf_size
+        if cached_tensor.numel() < required_size:
+            raise ValueError(f"{cls.__name__} needs {required_size} elements, got {cached_tensor.numel()}")
         src_buf = cached_tensor[:src_buf_size]
-        dst_buf = cached_tensor[:dst_buf_size]
+        dst_buf = cached_tensor[src_buf_size:required_size]
         return cls(axis=axis, src_buf=src_buf, dst_buf=dst_buf, name=name)
 
 
@@ -239,7 +247,7 @@ class GEMMBlock(ComputeBlock):
     @classmethod
     def from_api_params(cls, axis: "Axis", name: str, api_params: dict, cached_tensor: Optional[torch.Tensor] = None):
         if cached_tensor is None:
-            cached_tensor = torch.zeros(cls.get_tensor_size(api_params), device="cuda")
+            cached_tensor = torch.ones(cls.get_tensor_size(api_params), device="cuda", dtype=torch.float16)
 
         size_a = api_params["mat_a_shape"][0] * api_params["mat_a_shape"][1]
         size_b = api_params["mat_b_shape"][0] * api_params["mat_b_shape"][1]
@@ -278,4 +286,4 @@ class TorchNNModuleBlock(_Block):
 
 
 # Load all the custom blocks
-import blocks
+from .. import blocks

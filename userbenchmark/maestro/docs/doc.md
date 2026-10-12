@@ -2,16 +2,13 @@
 
 ## Bare-Metal installation
 
-Maestro uses [uv](https://docs.astral.sh/uv/) for dependency management. Install `uv` if you don't have it, then from the `maestro/` directory:
+From the TorchBench repository root, install the Maestro dependencies:
 
+```bash
+python install.py --userbenchmark maestro
 ```
-uv sync
-```
 
-This creates a `.venv/` with all dependencies pinned by `uv.lock`. Activate it with `source .venv/bin/activate`, or prefix commands with `uv run` (e.g. `uv run python src/main.py ...`).
-
-## Docker
-Use the docker under deploy/Dockerfile
+Maestro requires PyTorch 2.9 or newer.
 
 # Run
 
@@ -20,24 +17,19 @@ Make sure the following environment variables are defined (and equal) on every p
 - `MASTER_PORT`: a random available port
 
 
-The entrypoint is `main.py`, several commands are available from it. To run the execution of a benchmark, use the `run` command and pass the YAML configuration file, see the API documentation below on how to create this YAML configuration, for example:
+Launch one process per GPU from the TorchBench repository root. Pass the configuration file after the benchmark name:
 
 ```bash
-# With torchrun
-torchrun --nnodes 1 --nproc-per-node 2 maestro/src/main.py run -c "/path/to/config.yaml"
-
-# With srun
-srun -N 1 --gpus-per-node=8 python maestro/src/main.py run -c "/path/to/config.yaml"
+torchrun --nnodes 1 --nproc-per-node 2 run_benchmark.py maestro /path/to/config.yaml
+srun -N 1 --gpus-per-node=8 --ntasks-per-node=8 python run_benchmark.py maestro /path/to/config.yaml
 ```
 
-For more information on the `run` command, run:
-```
-python main.py run --help
-```
+For the engine CLI commands:
 
-Other minor commands are available, for more information run `python main.py --help`:
 ```bash
-python main.py list-blocks # Will list the available blocks
+python -m userbenchmark.maestro.maestro --help
+python -m userbenchmark.maestro.maestro list-blocks
+python -m userbenchmark.maestro.maestro list-op-presets
 ```
 
 # API
@@ -51,6 +43,7 @@ python main.py list-blocks # Will list the available blocks
 
 ## Environment variables
 - `MAESTRO_LOG_LEVEL`: Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL).
+- `USE_PER_AXIS_ENV_VARS`: Per-axis `envs` overrides are disabled by default. Set `USE_PER_AXIS_ENV_VARS=1` in the launcher environment to enable them. NCCL may cache environment values, so per-axis changes can be ineffective and enabling them can cause undefined behavior. Prefer setting NCCL environment variables in the launcher for the whole process.
 
 ## Configuration Schema
 At the top level the YAML file supports:
@@ -61,7 +54,7 @@ warmup_iters: 20        # warmup iterations  (default 20)
 latency_precision: 3    # Defines the precision of the reported latency (default 3)
 stop_on_error: false    # Stop execution if one pattern fails (default false)
 register_buffers: false # Enable NCCL user buffer registration (default false, see below)
-save_results_to: /path/to/results.csv # Must be an absolute path. If provided, will save the results in the format matching the file extension (csv, json, xlsx; unknown extensions fall back to csv), if the path doesn't exist it will be created. %D will be replaced by the datetime. Don't forget to mount this path if you use a container. Can be overridden with the `--save-results-to` CLI flag, which takes precedence over this value.
+save_results_to: /path/to/results.csv # Must be an absolute path. If provided, will save the results in the format matching the file extension (csv or json; other extensions are rejected), if the path doesn't exist it will be created. %D will be replaced by the datetime. Don't forget to mount this path if you use a container. Can be overridden with the `--save-results-to` CLI flag, which takes precedence over this value.
 backends:               # optional
   backend_name: <backend_config>
 axes: {}                # required - axis definitions (see below)
@@ -80,9 +73,19 @@ ops: []   # ordered list of operations
 name: ""  # Pattern name
 ```
 
-See `../examples/` for example configurations.
+See [examples](../examples/) for example configurations. The `all_reduce_sweep.yaml` and `reduce_sweep.yaml` examples require at least 16 ranks, with world size divisible by 16.
 
 ### Axis definition
+
+Each axis may optionally set `traffic_class` (an integer from 0 to 255). It is passed directly to the NCCL process-group configuration, independently of `USE_PER_AXIS_ENV_VARS`:
+
+```yaml
+axes:
+  dp:
+    team_size: max
+    team_stride: 1
+    traffic_class: 0
+```
 
 Each entry under `axes` maps an axis name to either:
 
@@ -115,7 +118,7 @@ The parameter `team_size` can be either a number or `max`, in this case the team
 ### Operations definition
 Each list item in a pattern's `ops` describes one block execution.
 Operation parameters are:
-- `block`: Registered block name (see `python/src/blocks`).
+- `block`: Registered block name (see `maestro/blocks`).
 - `axis`: Axis key defined in `axes`.
 - `name`: Name of the operation (optional, defaults to an automatically generated name)
 - Extra fields required by the block family:
@@ -145,14 +148,15 @@ backends:
 
 #### Axes backend
 Different backends can be used to handle distributed communication:
-- **Torch** (`src/core/axis.py:TorchAxis`): Torch ProcessGroup communication
+- **Torch** (`maestro/core/axis.py:TorchAxis`): Torch ProcessGroup communication
 
 
 #### Profiler backend
 Select the profiler by configuring `backends.profiler.name`. Each profiler may expect specific environment setup (e.g. CUPTI bindings, GPU visibility) and specific parameters.
 - **CUPTI** (`core/profilers/cupti.py`): Captures concurrent kernel traces and optionally writes Chrome trace JSON (`traceEvents`).
-- **Torch Profiler** (`core/profilers/torch.py`): Alternate implementation that exports traces through `torch.profiler.profile`, not functional yet.
 
+
+Communication sizes accept binary `K/M/G` and `KiB/MiB/GiB` suffixes. Fractional magnitudes such as `1.5M` are accepted when they resolve to whole bytes. Matrix dimensions are element counts; bandwidth is reported in decimal GB/s.
 
 ## Output
 The output display performance metrics for each block, the performance metric will depend on the block type, for example GEMM blocks will always have bandwidth=N/A as this is not a relevant metric for them.
@@ -165,7 +169,7 @@ Where:
 - f_i is the factor of the collectives i (as defined by nccl test), as a function of his PG size.
 - t_i is the execution time of the collective i.
 
-Additionally, when there is at most one block per axis, an "overlap percentage" metric is reported. This measures the percentage of the total execution time (from first block start to last block end) during which ALL blocks were running concurrently. A higher overlap percentage indicates better overlap between concurrent operations.
+Additionally, when there is at most one block per axis, an "overlap percentage" metric is reported. For each rank and iteration, this measures the percentage of the local execution span (from first block start to last block end) during which ALL blocks were running concurrently. The reported value is the arithmetic mean across ranks, averaged across iterations. Each calculation uses that rank’s own start/end timestamps; timestamps from different hosts are never compared for overlap. A higher overlap percentage indicates better overlap between concurrent operations.
 
 For each block the average, minimum, maximum, and 99th percentile (P99) latencies across iterations are reported. P99 captures tail latency — the value below which 99% of iterations fall — which is useful for surfacing rare slow iterations that the average alone may mask.
 
@@ -191,4 +195,4 @@ Avg overlap: 85.3%
 
 ## Operation presets
 
-Based on hyper parameters, operation presets automatically create the right operations for a pre-configured task, for example a MoE fast forward pass. The operation configuration should have the `preset` key, matching one of the available op presets, a `name` that will be a suffix for every operation created and then a `params` dictionary matching the required parameters of the preset. Run `main.py list-op-presets` to list available presets. The ops presets are located in the `ops_presets` directory, each class has a `params_schema` that describe what parameters are expected. 
+Based on hyper parameters, operation presets automatically create the right operations for a pre-configured task, for example a MoE fast forward pass. The operation configuration should have the `preset` key, matching one of the available op presets, a `name` that will be a prefix for every operation created and then a `params` dictionary matching the required parameters of the preset. Run `python -m userbenchmark.maestro.maestro list-op-presets` to list available presets. The ops presets are located in the `ops_presets` directory, each class has a `params_schema` that describe what parameters are expected.

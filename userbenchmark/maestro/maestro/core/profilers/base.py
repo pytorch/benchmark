@@ -3,8 +3,8 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Optional, Union
 
-from core.utils.logging import get_logger
-from core.utils.distributed import get_rank_and_world_size
+from ...core.utils.logging import get_logger
+from ...core.utils.distributed import get_rank_and_world_size
 
 
 logger = get_logger(__name__)
@@ -86,7 +86,7 @@ class profiler_ctx(ABC):
 
         self._results.extend(results)
     
-    def get_results(self) -> list[list[dict]]:
+    def get_results(self) -> list[dict]:
         return self._results
     
     def reset(self):

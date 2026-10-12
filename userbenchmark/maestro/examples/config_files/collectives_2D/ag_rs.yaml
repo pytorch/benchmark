@@ -10,7 +10,7 @@ axes:
     team_stride: 2
 
 patterns:
-  - name: "AG+RS (256M)"
+  - name: "AG (4M) + RS (256M)"
     ops:
     - block: "torch_all_gather"
       axis: ag

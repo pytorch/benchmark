@@ -1,6 +1,7 @@
-iters: 3
+# Requires a world size that is a multiple of 16 (at least 16 ranks).
+iters: 100
 warmup_iters: 50
-save_results_to: "/path/to/results/reduce_sweep_%D.csv"
+save_results_to: "/tmp/maestro/results/reduce_sweep_%D.csv"
 axes:
   ax:  # Create a axis explicitly
     team_size: 16

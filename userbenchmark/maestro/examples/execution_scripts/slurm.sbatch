@@ -2,13 +2,12 @@
 #SBATCH --output=%x_%j.out
 #SBATCH --job-name=pytorch-maestro
 
-# Disclaimer: This sbatch doesn't handle installation
+# Run from the TorchBench repository root after installing dependencies.
+# Example: sbatch --nodes=2 --gpus-per-node=8 --ntasks-per-node=8 \
+#   userbenchmark/maestro/examples/execution_scripts/slurm.sbatch --config-file /absolute/config.yaml
+set -euo pipefail
 
-# This is an example SBATCH execution script for maestro using a container
-# Refer to Sbatch doc for usage: https://slurm.schedmd.com/sbatch.html
-
-
-# Read parameters: Paths for config file and results dir (the directory containing config's 'save_results_to' file)
+CONFIG_FILE=""
 while [ $# -gt 0 ]; do
     case "$1" in
         --config-file)
@@ -19,65 +18,36 @@ while [ $# -gt 0 ]; do
             CONFIG_FILE="$2"
             shift 2
             ;;
-        --results-dir)
-            if [ $# -lt 2 ]; then
-                echo "Missing value for --results-dir" >&2
-                exit 1
-            fi
-            RESULTS_DIR="$2"
-            shift 2
-            ;;
         *)
-            echo "Unknown argument: $1" >&2
-            echo "Usage: sbatch $0 [--config-file PATH] [--results-dir DIR]" >&2
+            echo "Usage: sbatch $0 --config-file PATH" >&2
             exit 1
             ;;
     esac
 done
 
-# Define environment variables
-export NCCL_DEBUG=warn 
-export MASTER_ADDR=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)  \
-        MASTER_PORT=$(expr 10000 + $(echo -n $SLURM_JOBID | tail -c 4))
-
-
-# Print parameters summary
-echo "#########################################################"
-echo "Timestamp: $(date)"
-echo "Nodes: $SLURM_JOB_NODELIST"
-echo "GPUs per node: $SLURM_GPUS_PER_NODE"
-echo "Config: $CONFIG_FILE"
-echo "Results dir: $RESULTS_DIR"
-echo "Log level: $MAESTRO_LOG_LEVEL"
-echo "#########################################################"
-
-
-# Sanity checks
-if [ -z "$CONFIG_FILE" ]; then 
-    echo "Error: --config-file must be specified." >&2
-    echo "Usage: sbatch $0 [--config-file PATH] [--results-dir DIR]" >&2
-    exit 1
-fi
 if [ ! -f "$CONFIG_FILE" ]; then
-    echo "Error: CONFIG_FILE '$CONFIG_FILE' does not exist." >&2
+    echo "Error: --config-file must name an existing YAML file." >&2
+    exit 1
+fi
+CONFIG_FILE=$(realpath "$CONFIG_FILE")
+cd "${SLURM_SUBMIT_DIR:?Run sbatch from the TorchBench repository root}"
+if [ ! -f run_benchmark.py ]; then
+    echo "Error: run sbatch from the TorchBench repository root." >&2
     exit 1
 fi
 
-if [ -z "$RESULTS_DIR" ]; then
-    echo "Warning: --results-dir was not set, this argument is not mandatory, but if you intend to save your results in a file (i.e used 'save_results_to' option in your config), your results may not be saved without it." >&2
-    echo "Usage: sbatch $0 [--config-file PATH] [--results-dir DIR]" >&2
-else
-    # If it is set, check that it exist
-    if [ ! -d "$RESULTS_DIR" ]; then
-        echo "Error: RESULTS_DIR '$RESULTS_DIR' does not exist." >&2
-        exit 1
-    fi
+# SLURM_GPUS_PER_NODE can contain a GPU type (for example a100:8).
+GPUS_PER_NODE=${SLURM_GPUS_PER_NODE:-${SLURM_GPUS_ON_NODE:-}}
+GPUS_PER_NODE=${GPUS_PER_NODE##*:}
+if ! [[ "$GPUS_PER_NODE" =~ ^[1-9][0-9]*$ ]]; then
+    echo "Error: specify --gpus-per-node with a positive GPU count." >&2
+    exit 1
 fi
+export NCCL_DEBUG=warn
+MASTER_ADDR=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
+MASTER_PORT=$((10000 + SLURM_JOB_ID % 50000))
+export MASTER_ADDR MASTER_PORT
 
-
-# Run maestro
-srun --gpus-per-node=$SLURM_GPUS_PER_NODE \
-    --ntasks-per-node=$SLURM_GPUS_PER_NODE \
-    bash -c "
-    python /PATH/TO/maestro/src/main.py run -c $CONFIG_FILE
-    "
+# Results are written to the absolute save_results_to path in the YAML.
+srun --gpus-per-node="$GPUS_PER_NODE" --ntasks-per-node="$GPUS_PER_NODE" \
+    python run_benchmark.py maestro "$CONFIG_FILE"

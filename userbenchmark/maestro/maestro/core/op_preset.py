@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from abc import ABCMeta
 
-from core.utils.logging import get_logger
+from .utils.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -82,4 +82,4 @@ class OpPreset(ABC, metaclass=_OpPresetRegistrer):
         """
         pass
 
-import ops_presets
+from .. import ops_presets

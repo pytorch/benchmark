@@ -1,9 +1,9 @@
 import os
 import json
-from core.utils.logging import get_logger, get_root_rank_logger
+from ...core.utils.logging import get_logger, get_root_rank_logger
 from pathlib import Path
 from typing import Optional
-from core.profilers.base import profiler_ctx
+from .base import profiler_ctx
 
 try:
     from cupti import cupti
@@ -25,6 +25,7 @@ class CuptiProfiler(profiler_ctx):
 
         super().__init__(output_dir)
         
+        self._active = False
         self.activities = [
             cupti.ActivityKind.CONCURRENT_KERNEL,
             cupti.ActivityKind.MEMCPY,
@@ -91,10 +92,18 @@ class CuptiProfiler(profiler_ctx):
             logger.exception(f"Error saving CUPTI results: {e}")
             return
 
+    def reset(self):
+        # Warmup runs inside an active capture. Drain pending activities before
+        # discarding them, otherwise they can arrive in the measured results.
+        if self._active:
+            cupti.activity_flush_all(1)
+        super().reset()
+
     def _enter(self):
         """Start CUPTI profiling"""
         for activity in self.activities:
             cupti.activity_enable(activity)
+        self._active = True
     
     def _exit(self, nosave: bool = False):
         """Stop CUPTI profiling and optionally save results
@@ -106,6 +115,7 @@ class CuptiProfiler(profiler_ctx):
 
         for activity in self.activities:
             cupti.activity_disable(activity)
+        self._active = False
     
     def _save_trace(self, output_file=None):
         """Save results in Chrome Trace Event Format (JSON)"""

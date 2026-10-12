@@ -7,6 +7,7 @@ setup(
     author="PyTorch Team",
     url="https://github.com/pytorch/benchmark",
     packages=find_packages(include=["torchbenchmark*", "userbenchmark*"]),
+    package_data={"userbenchmark.maestro": ["pyproject.toml", "README.md"]},
     classifiers=[
         "Intended Audience :: Developers",
         "Topic :: Software Development :: Build Tools",

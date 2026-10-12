@@ -42,6 +42,7 @@ def run():
     except ImportError as e:
         print(f"Failed to import user benchmark module {args.bm_name}, error: {str(e)}")
         traceback.print_exc()
+        raise SystemExit(1) from e
 
 
 if __name__ == "__main__":

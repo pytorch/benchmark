@@ -1,1 +1,1 @@
-from ops_presets.moe import MOEOpPreset
+from .moe import MOEOpPreset

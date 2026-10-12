@@ -1,17 +1,22 @@
 from pathlib import Path
 from datetime import datetime
+from copy import deepcopy
 import yaml
 from typing import Union
 
-from core.utils.distributed import create_axis_by_stride, get_rank_and_world_size
-from core.utils.format import parse_size, format_size
+from .utils.distributed import create_axis_by_stride, get_rank_and_world_size, nccl_torch_dist_utils
+from .utils.format import parse_size, format_size
 
-from core.op_preset import OpPresetRegistry
+from .op_preset import OpPresetRegistry
+from .block import BlockRegistry, CommBlock, GEMMBlock
 
-from core.utils.logging import get_logger
+from .utils.logging import get_logger
 logger = get_logger(__name__)
 
-NOW = datetime.now().strftime("%d-%m-%y_%Hh%M")
+def _shared_timestamp() -> str:
+    """Choose one output timestamp after distributed initialization."""
+    timestamp = datetime.now().strftime("%d-%m-%y_%Hh%M")
+    return nccl_torch_dist_utils.all_gather_object(timestamp)[0]
 
 
 def parse_axis_config(axis_config: dict) -> list[list[int]]:
@@ -21,21 +26,25 @@ def parse_axis_config(axis_config: dict) -> list[list[int]]:
             raise ValueError("team_size and team_stride are required when creating an axis by size/stride")
         team_size = axis_config.get("team_size")
         team_stride = axis_config.get("team_stride")
+        if not isinstance(team_stride, int) or isinstance(team_stride, bool) or team_stride <= 0:
+            raise ValueError("team_stride must be a positive integer")
         if isinstance(team_size,str) and team_size.lower() == "max":
             if world_size % team_stride != 0:
                 raise ValueError(f"Team size set to 'max' but world size {world_size} is not divisible by team stride {team_stride}")
             team_size = world_size // team_stride
-        elif not (isinstance(team_size, int) and isinstance(team_stride, int) and team_size > 0 and team_stride > 0):
+        elif not (isinstance(team_size, int) and not isinstance(team_size, bool) and isinstance(team_stride, int) and team_size > 0 and team_stride > 0):
             raise ValueError(f"team_size and team_stride must be integers and greater than 0, got {team_size} and {team_stride}")
         return create_axis_by_stride(world_size, team_stride, team_size)
     elif "teams" in axis_config:
         if not isinstance(axis_config["teams"], list) or not all(isinstance(team, list) for team in axis_config["teams"]):
             raise ValueError("teams must be a list of lists of ranks")
         # Check that all the ranks are present in the axis
+        if not axis_config["teams"] or any(not team for team in axis_config["teams"]):
+            raise ValueError("teams must contain nonempty teams")
         ranks_check = set(range(world_size))
         for team in axis_config["teams"]:
             for rank in team:
-                if not isinstance(rank, int):
+                if not isinstance(rank, int) or isinstance(rank, bool):
                     raise ValueError("Ranks should be integers")
                 if rank < 0 or rank >= world_size:
                     raise ValueError(f"Rank {rank} is out of bounds [0, {world_size})")
@@ -104,9 +113,10 @@ def parse_pattern(pattern: dict, axes: dict[str, list[list[int]]]) -> dict:
 
     Parse configuration and unwraps presets, output a clean pattern where:
     - Every axis is a list of lists of ranks
-    - The input sizes are in bytes, and are converted to the number of elements of the dtype
+    - Communication sizes are converted from bytes to fp16 element counts
+    - Matrix dimensions are element counts
     """
-    dtype_size = 2 # For now everythin is float16
+    dtype_size = 2  # Current blocks use float16
 
     # - Pattern preset
     if "preset" in pattern:
@@ -125,23 +135,44 @@ def parse_pattern(pattern: dict, axes: dict[str, list[list[int]]]) -> dict:
         unwrapped_ops.extend(preset_ops)
 
     pattern["ops"] = unwrapped_ops
-    for i, op in enumerate(pattern["ops"]):
-        if "vector_size" in op:
-            op["vector_size"] = parse_size(op["vector_size"]) // dtype_size
-        if "mat_a_shape" in op:
-            if not isinstance(op["mat_a_shape"], list):
-                raise ValueError(f"mat_a_shape must be a list, got {type(op['mat_a_shape'])}")
-            op["mat_a_shape"] = (parse_size(op["mat_a_shape"][0]) // dtype_size, parse_size(op["mat_a_shape"][1]) // dtype_size)
-        if "mat_b_shape" in op:
-            if not isinstance(op["mat_b_shape"], list):
-                raise ValueError(f"mat_b_shape must be a list, got {type(op['mat_b_shape'])}")
-            op["mat_b_shape"] = (parse_size(op["mat_b_shape"][0]) // dtype_size, parse_size(op["mat_b_shape"][1]) // dtype_size)
+    if not pattern["ops"]:
+        raise ValueError("Pattern must contain at least one operation")
+    for op in pattern["ops"]:
+        axis_name = op.get("axis")
+        if axis_name not in axes:
+            raise ValueError(f"Operation references unknown axis {axis_name!r}")
+        if not op.get("block"):
+            raise ValueError("Operation requires a block name")
+        try:
+            block_cls = BlockRegistry.get_block_cls(op["block"])
+        except NameError as exc:
+            raise ValueError(str(exc)) from exc
+        block_cls._enrich_api_params_schema(op)
+        if issubclass(block_cls, CommBlock):
+            byte_size = parse_size(op["vector_size"])
+            if byte_size <= 0 or byte_size % dtype_size:
+                raise ValueError("vector_size must be positive and divisible by the fp16 element size (2 bytes)")
+            op["vector_size"] = byte_size // dtype_size
+            if op["block"] in {"torch_alltoall", "torch_all_gather", "torch_reduce_scatter"}:
+                # Validate every team so all ranks reject an invalid configuration.
+                for team in axes[axis_name]:
+                    if op["vector_size"] % len(team):
+                        raise ValueError(f"vector_size in elements must be divisible by team_size={len(team)}")
+        if issubclass(block_cls, GEMMBlock):
+            for key in ("mat_a_shape", "mat_b_shape"):
+                shape = op[key]
+                if not isinstance(shape, (list, tuple)) or len(shape) != 2:
+                    raise ValueError(f"{key} must contain exactly two dimensions")
+                dims = tuple(parse_size(dim) for dim in shape)
+                if any(dim <= 0 for dim in dims):
+                    raise ValueError(f"{key} dimensions must be positive")
+                op[key] = dims
+            if op["mat_a_shape"][1] != op["mat_b_shape"][0]:
+                raise ValueError("GEMM inner dimensions must match")
 
-    # Validate
-    # - all the axes referenced in the blocks exist
     return pattern
 
-def parse_backends(backends: dict) -> dict:
+def parse_backends(backends: dict, timestamp: str) -> dict:
     """
     Parse backend config and return a clean backend dictionary with the following structure:
     {
@@ -163,7 +194,7 @@ def parse_backends(backends: dict) -> dict:
     for backend in default_backends.values():
         if backend.get("output_dir", None) is not None:
             assert isinstance(backend["output_dir"], str), "output_dir must be a string"
-            backend["output_dir"] = backend["output_dir"].replace("%D", NOW)
+            backend["output_dir"] = backend["output_dir"].replace("%D", timestamp)
             Path(backend["output_dir"]).mkdir(parents=True, exist_ok=True)
     
 
@@ -181,17 +212,28 @@ def parse_config(config: Union[Path, dict, str], save_results_to_override: str =
     """
     if not isinstance(config, dict):
         try:
-            config = yaml.safe_load(open(Path(config)))
+            with Path(config).open() as stream:
+                config = yaml.safe_load(stream)
         except Exception as e:
             raise ValueError(f"Error loading config from file {config}: {e}")
 
+    if not isinstance(config, dict):
+        raise ValueError("Configuration must be a mapping")
+    config = deepcopy(config)
+    timestamp = _shared_timestamp()
     if save_results_to_override:
         config["save_results_to"] = save_results_to_override
     
     axes = {}
     axis_envs = {}
+    axis_params = {}
     for name, axis_config in config.get("axes", {}).items():
         axes[name] = parse_axis_config(axis_config)
+        if "traffic_class" in axis_config:
+            traffic_class = axis_config["traffic_class"]
+            if not isinstance(traffic_class, int) or isinstance(traffic_class, bool) or not 0 <= traffic_class <= 255:
+                raise ValueError(f"Axis {name} traffic_class must be an integer between 0 and 255")
+            axis_params[name] = {"traffic_class": traffic_class}
         envs = axis_config.get("envs")
         if envs is not None:
             if not isinstance(envs, dict):
@@ -209,19 +251,22 @@ def parse_config(config: Union[Path, dict, str], save_results_to_override: str =
         pattern["name"] = pattern.get("name", f"pattern_{i}")
         parsed_patterns.append(parse_pattern(pattern, axes=axes))
 
-    parsed_backends = parse_backends(config.get("backends", {}))
+    parsed_backends = parse_backends(config.get("backends", {}), timestamp)
 
     save_results_to = config.get("save_results_to", None)
     if save_results_to:
-        save_results_to = save_results_to.replace("%D", NOW)
+        save_results_to = save_results_to.replace("%D", timestamp)
         save_results_to = Path(save_results_to)
         if not save_results_to.is_absolute():
             raise ValueError(f"save_results_to must be an absolute path, got {save_results_to}")
+        if save_results_to.suffix.lower() not in {".csv", ".json"}:
+            raise ValueError("save_results_to must use a .csv or .json extension")
         save_results_to.parent.mkdir(parents=True, exist_ok=True)
 
     out_config = {
         "axes": axes,
         "axis_envs": axis_envs,
+        "axis_params": axis_params,
         "save_results_to": save_results_to,
         "stop_on_error": config.get("stop_on_error", False),
         "patterns": parsed_patterns,
@@ -231,4 +276,9 @@ def parse_config(config: Union[Path, dict, str], save_results_to_override: str =
         "latency_precision": config.get("latency_precision", 3),
         "register_buffers": config.get("register_buffers", False),
     }
+    for key in ("iters", "warmup_iters", "latency_precision"):
+        value = out_config[key]
+        minimum = 1 if key == "iters" else 0
+        if not isinstance(value, int) or isinstance(value, bool) or value < minimum:
+            raise ValueError(f"{key} must be an integer >= {minimum}")
     return out_config

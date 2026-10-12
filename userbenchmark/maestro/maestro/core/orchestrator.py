@@ -8,11 +8,12 @@ import statistics as st
 import torch
 import pandas as pd
 
-from core.block import BlockRegistry, CommBlock, GEMMBlock
-from core.axis import Axis, TorchAxis
-from core.profilers import profiler_ctx
-from core.utils.distributed import get_rank_and_world_size, _DistUtils, root_print, dist_print
-from core.utils.logging import get_logger, get_root_rank_logger
+from .block import BlockRegistry, CommBlock, GEMMBlock
+from .axis import Axis, TorchAxis
+from .profilers import profiler_ctx
+from .utils.distributed import get_rank_and_world_size, _DistUtils, root_print, dist_print
+from .utils.logging import get_logger, get_root_rank_logger
+from .utils.start_gate import CUDAStartGate
 
 
 
@@ -33,6 +34,7 @@ class Orchestrator:
         stop_on_error: bool = False,
         register_buffers: bool = False,
         axis_envs: dict[str, dict[str, str]] | None = None,
+        axis_params: dict[str, dict] | None = None,
     ):
         """
         patterns: Pattern to execute
@@ -45,7 +47,9 @@ class Orchestrator:
             If not provided, the distributed utilities of the axis class will be used
         stop_on_error: Stop the execution if an error occurs in one of the patterns
         register_buffers: Register pytorch buffers (PyTorch only)
-        axis_envs: Per-axis environment variables, active while creating and using each axis
+        axis_params: Process-group options per axis, such as traffic_class
+        axis_envs: Experimental overrides during process-group creation only,
+            enabled by USE_PER_AXIS_ENV_VARS; may lead to undefined behavior
         """
         self.patterns = patterns
         self.warmup_iters = warmup_iters
@@ -57,8 +61,10 @@ class Orchestrator:
         self.register_buffers = register_buffers
 
         axis_envs = axis_envs or {}
+        axis_params = axis_params or {}
         self.axes = {
-            axis_name: self.axis_cls(groups, name=axis_name, envs=axis_envs.get(axis_name))
+            axis_name: self.axis_cls(groups, name=axis_name, envs=axis_envs.get(axis_name),
+                                          params=axis_params.get(axis_name))
             for axis_name, groups in axes_cfg.items()
         }
 
@@ -73,6 +79,7 @@ class Orchestrator:
             raise ValueError("Maestro is designed to run on multiple ranks, please use torchrun or slurm to launch the program.")
 
         self._prepare_tensors_pool()
+        self._start_gate = CUDAStartGate()
 
     def run_all_patterns(self):
         """Run all the patterns"""
@@ -90,13 +97,20 @@ class Orchestrator:
         root_print("\n")
         return all_results_df
 
-    def run_pattern(self, pattern: dict) -> Union[None, pd.DataFrame]:
-        """Return results if rank=root, otherwise None"""
+    def run_pattern(self, pattern: dict) -> pd.DataFrame:
+        """Return the aggregated performance results on every rank."""
         if not pattern.get("ops"):
             raise ValueError("Pattern must contain at least one operation")
 
         rlogger.debug(f"Running pattern {pattern['name']}, creating blocks.")
         blocks = self._create_blocks(pattern)
+
+        # Initialize libraries and allocation caches before holding GPU streams.
+        # A first-use allocation or library setup may synchronize the device,
+        # which would deadlock if the host had not released the gate yet.
+        for block in blocks:
+            block.run()
+            self.axis_cls.synchronize_all()
 
         # Warmup 20 times - this is independent of warmup_iters which are perf-related
         rlogger.debug(f"Default warmup")
@@ -142,10 +156,10 @@ class Orchestrator:
             row = [
                 row.block_name,
                 f"{row.block_size}",
-                f"{row.avg_latency_ns / 1e6:.1f}",
-                f"{row.min_latency_ns / 1e6:.1f}",
-                f"{row.max_latency_ns / 1e6:.1f}",
-                f"{row.p99_latency_ns / 1e6:.1f}",
+                f"{row.avg_latency_ns / 1e6:.{self.latency_precision}f}",
+                f"{row.min_latency_ns / 1e6:.{self.latency_precision}f}",
+                f"{row.max_latency_ns / 1e6:.{self.latency_precision}f}",
+                f"{row.p99_latency_ns / 1e6:.{self.latency_precision}f}",
                 avg_bandwidth_gbps,
                 ]
             root_print(f"| ".join([str(cell).ljust(col_space) for cell in row]))
@@ -165,15 +179,16 @@ class Orchestrator:
         return results_df
 
     def _measure_blocks_performance(self, results: list[dict], blocks: list, streams_and_activities_per_block: dict[str, dict[str, int]], iters: int = 1) -> pd.DataFrame:
-        """Measure the performance of each block, averaged across the ranks
+        """Measure each block using the slowest rank per iteration
         Params:
             results: The results of the profiler
             blocks: The blocks to measure the performance of
             streams_and_activities_per_block: A dictionary in the format {block_name: {stream_id: num_activities_on_this_stream}}
             iters: Number of iterations recorded, they should be the same
 
-        Returns a df with performance for each block, where the duration has been averaged across the ranks then across the iterations
-        duration by iteration is the max duration across the ranks
+        Returns per-block performance aggregated across iterations.
+        Duration by iteration is the max duration across ranks.
+        Overlap is calculated per rank, then averaged across ranks and iterations.
         bandwidth_gbps is calculated for each block based on the aggregated duration
         """
         # Group result by stream_id
@@ -187,6 +202,30 @@ class Orchestrator:
 
         for activities in activity_per_stream.values():
             activities.sort(key=lambda x: x["start_ns"])
+
+        expected_counts = defaultdict(int)
+        unmatched = []
+        for block in blocks:
+            stream_counts = streams_and_activities_per_block.get(block.name, {})
+            if not stream_counts:
+                unmatched.append(block.name)
+            for stream_id, count in stream_counts.items():
+                expected_counts[stream_id] += count * iters
+        # As in the original stream mapper, only streams identified with a
+        # workload block contribute to measurements. Other streams may carry
+        # barrier or allocation activity and are ignored.
+        actual_counts = {stream_id: len(activity_per_stream[stream_id]) for stream_id in expected_counts}
+        mismatches = {
+            stream_id: {"expected": expected_counts[stream_id], "captured": actual_counts[stream_id]}
+            for stream_id in expected_counts
+            if expected_counts[stream_id] != actual_counts[stream_id]
+        }
+        local_error = {"unmatched_blocks": unmatched, "activity_counts": mismatches} if unmatched or mismatches else None
+        # Capture has completed on every rank. Exchange validation status before
+        # parsing so a rank with extra/missing activities cannot strand its peers.
+        errors = self.oob_dist_utils.all_gather_object(local_error)
+        if any(error is not None for error in errors):
+            raise RuntimeError(f"Profiler activity attribution failed on ranks: {errors}")
 
         # It is ok to iterate over blocks as the blocks are sorted by start_time in every activities list
         my_perf_by_block = []
@@ -254,6 +293,19 @@ class Orchestrator:
         df = pd.DataFrame(df_dat)
         df.sort_values(by=["rank", "start_ns"], inplace=True)
 
+        # Calculate overlap before aggregating timestamps across ranks. Each
+        # interval uses start/end from one rank's own clock domain.
+        overlap_by_iter = {}
+        if len({block.axis.name for block in blocks}) == len(blocks):
+            overlap_per_rank = defaultdict(list)
+            for (_, iter_ix), rank_iter_df in df.groupby(["rank", "iter"]):
+                overlap_time = max(0, rank_iter_df["end_ns"].min() - rank_iter_df["start_ns"].max())
+                total_time = rank_iter_df["end_ns"].max() - rank_iter_df["start_ns"].min()
+                overlap_pct = 100 * overlap_time / total_time if total_time > 0 else 0
+                overlap_per_rank[iter_ix].append(overlap_pct)
+            overlap_by_iter = {iter_ix: st.mean(percentages)
+                               for iter_ix, percentages in overlap_per_rank.items()}
+
         # Aggregate across ranks
         # duration_ns is the max duration_ns
         # start_ns is the min start_ns
@@ -305,32 +357,8 @@ class Orchestrator:
 
                 df.loc[df["iter"] == iter_ix, "shared_bw_gbps"] = shared_bw_gbps
 
-        # Overlap percentage calculation - only if there is one block per axis
-        # Measures the percentage of total execution time where ALL blocks were running together
-        df["overlap_pct"] = None
-
-        if one_block_per_axis:
-            for iter_ix, iter_df in df.groupby("iter"):
-                # Find the overlap window: time when ALL blocks are running
-                overlap_start = iter_df["start_ns"].max()  # latest start
-                overlap_end = (iter_df["start_ns"] + iter_df["duration_ns"]).min()  # earliest end
-
-                if overlap_end > overlap_start:
-                    overlap_time = overlap_end - overlap_start
-                else:
-                    overlap_time = 0
-
-                # Total time from first start to last end
-                total_start = iter_df["start_ns"].min()
-                total_end = (iter_df["start_ns"] + iter_df["duration_ns"]).max()
-                total_time = total_end - total_start
-
-                if total_time > 0:
-                    overlap_pct = (overlap_time / total_time) * 100
-                else:
-                    overlap_pct = 0
-
-                df.loc[df["iter"] == iter_ix, "overlap_pct"] = overlap_pct
+        # Report only mean rank-local overlap, then average across iterations.
+        df["overlap_pct"] = df["iter"].map(overlap_by_iter) if one_block_per_axis else None
 
         # Aggregate across iters
         df = df.groupby(["block_name"]).agg(
@@ -392,39 +420,27 @@ class Orchestrator:
         return streams_and_activities_per_block
 
     def _execute(self, blocks: list, iters: int = 1):
-        """Execute all the blocks <iters> times"""
-        start_event = self.axis_cls.create_event()
-
-        # Make all axes wait for the start event
-        for axis in self.axes.values():
-            axis.wait_event(start_event)
-
+        """Enqueue all axes behind a recorded, host-released start event."""
+        if iters == 0:
+            return
         self.oob_dist_utils.barrier()
-
-        barrier_handle = None
-
-        # Enqueue blocks
         axes = set(block.axis for block in blocks)
-        for _ in range(iters):
-            # Run blocks
-            for block in blocks:
-                block.run()
 
-            # Make main stream wait for blocks completion
-            for axis in axes:
-                torch.cuda.current_stream().wait_stream(axis.stream)
+        with self._start_gate.hold(axes):
+            for _ in range(iters):
+                for block in blocks:
+                    block.run()
 
-            # Barrier
-            barrier_handle = self.oob_dist_utils.barrier(async_op=True)
-            assert barrier_handle is not None, "Barrier handle should not be None"
+                # Fence each iteration on every participating axis. The host
+                # release is independent of this stream, avoiding a gate cycle.
+                for axis in axes:
+                    torch.cuda.current_stream().wait_stream(axis.stream)
 
-            # Make everyone wait for the barrier
-            for axis in axes:
-                with axis.use_axis():
-                    barrier_handle.block_current_stream()
-
-        # Start execution
-        self.axis_cls.record_event(start_event)
+                barrier_handle = self.oob_dist_utils.barrier(async_op=True)
+                assert barrier_handle is not None, "Barrier handle should not be None"
+                for axis in axes:
+                    with axis.use_axis():
+                        barrier_handle.block_current_stream()
 
         self.axis_cls.synchronize_all()
 
@@ -439,12 +455,14 @@ class Orchestrator:
 
         tensor_sizes = []
         for pattern in self.patterns:
+            pattern_size = 0
             for op in pattern["ops"]:
                 BlockCls = BlockRegistry.get_block_cls(op["block"])
-                tensor_size = BlockCls.get_tensor_size(op)
+                tensor_size = self._get_op_tensor_size(BlockCls, op)
                 if tensor_size > 0:
-                    tensor_sizes.append(tensor_size)
-        if not tensor_sizes:
+                    pattern_size += tensor_size
+            tensor_sizes.append(pattern_size)
+        if not tensor_sizes or max(tensor_sizes) <= 0:
             raise ValueError("No positive tensor size found across patterns operations, please check your pattern configuration")
 
         if self.register_buffers:
@@ -484,10 +502,16 @@ class Orchestrator:
         rlogger.info(f"Registered Maestro NCCL tensor pool for {len(groups)} axis process group(s)")
         return tensor
 
+    def _get_op_tensor_size(self, block_cls, op: dict) -> int:
+        if issubclass(block_cls, CommBlock):
+            return block_cls.get_tensor_size(op, self.axes[op["axis"]])
+        return block_cls.get_tensor_size(op)
+
     def _create_blocks(self, pattern: dict):
         """Create the blocks for the pattern"""
         blocks = []
         _blocks_names = set()
+        tensor_offset = 0
         for op in pattern["ops"]:
             BlockCls = BlockRegistry.get_block_cls(op["block"])
 
@@ -504,14 +528,27 @@ class Orchestrator:
             _blocks_names.add(block_name)
 
             # Instanciate block
-            block = BlockCls.from_api_params(axis=axis, name=block_name, api_params=op, cached_tensor=self._tensors_pool["main"])
+            tensor_size = max(0, self._get_op_tensor_size(BlockCls, op))
+            cached_tensor = self._tensors_pool["main"][tensor_offset:tensor_offset + tensor_size]
+            tensor_offset += tensor_size
+            # Communication starts at zero so repeated in-place reductions remain
+            # finite. Initialize before warmup, outside the measured region.
+            if issubclass(BlockCls, CommBlock):
+                cached_tensor.zero_()
+            else:
+                cached_tensor.fill_(1)
+            block = BlockCls.from_api_params(axis=axis, name=block_name, api_params=op, cached_tensor=cached_tensor)
             axis_name = op["axis"]
             blocks.append(block)
 
+        # Initialization uses the current stream; complete it before axes launch
+        # work on their own streams. This happens outside profiling.
+        self.axis_cls.synchronize_all()
         return blocks
 
     def destroy(self):
         """Destroy the orchestrator"""
+        self._start_gate.close()
         self._cleanup_registered_pool()
         self.oob_dist_utils.destroy()
         self.axis_cls.destroy()

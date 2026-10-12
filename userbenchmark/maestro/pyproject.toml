@@ -9,11 +9,12 @@ description = "A benchmarking framework for overlapping communication/compute op
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "click==8.3.0",
+    "click>=8.3.0",
     "cupti-python",
-    "pandas==2.3.3",
+    "cuda-bindings",
+    "pandas>=2.3.3",
     "PyYAML",
-    "torch>=2.6",
+    "torch>=2.9",
 ]
 
 [tool.hatch.build.targets.wheel]

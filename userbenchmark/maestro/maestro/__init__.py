@@ -1,24 +1,21 @@
 """Maestro benchmarking package."""
 
-import sys
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
-
-# Internal modules still import `core`, `blocks`, and `ops_presets` as top-level
-# names. Put this package directory on sys.path so `python -m maestro` works.
-_PKG_DIR = Path(__file__).resolve().parent
-if str(_PKG_DIR) not in sys.path:
-    sys.path.insert(0, str(_PKG_DIR))
-
-_PYPROJECT = _PKG_DIR.parent / "pyproject.toml"
+import re
 
 
 def _load_version() -> str:
-    if _PYPROJECT.is_file():
-        for line in _PYPROJECT.read_text().splitlines():
-            stripped = line.strip()
-            if stripped.startswith("version"):
-                return stripped.split("=", 1)[1].strip().strip("\"'")
-    return "0.0.0+unknown"
+    try:
+        return version("maestro")
+    except PackageNotFoundError:
+        # Source checkouts need not have installed distribution metadata.
+        pyproject = Path(__file__).resolve().parent.parent / "pyproject.toml"
+        if pyproject.is_file():
+            match = re.search(r'^version\s*=\s*[\"\']([^\"\']+)', pyproject.read_text(), re.MULTILINE)
+            if match:
+                return match.group(1)
+        return "0.0.0+unknown"
 
 
 __version__ = _load_version()

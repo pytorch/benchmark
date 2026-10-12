@@ -1,6 +1,6 @@
 iters: 100
 warmup_iters: 50
-save_results_to: "/path/to/results/all_collectives_sweep_%D.csv"
+save_results_to: "/tmp/maestro/results/all_collectives_sweep_%D.csv"
 axes:
   ax:  # Create a axis explicitly
     team_size: "max"

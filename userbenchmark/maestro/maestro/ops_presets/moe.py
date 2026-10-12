@@ -1,6 +1,12 @@
+"""Nonfunctional MoE preset provided only as an example for custom presets.
+
+This preset illustrates how to define a parameter schema and generate operations.
+It must not be used to benchmark an MoE workload.
+"""
+
 import math 
 
-from core.op_preset import OpPreset
+from ..core.op_preset import OpPreset
 
 class MOEOpPreset(OpPreset):
 
@@ -80,4 +86,4 @@ class MOEOpPreset(OpPreset):
             },
         ]
 
-        return {}, ops 
+        return {}, ops

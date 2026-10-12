@@ -2,9 +2,9 @@ from abc import abstractmethod
 import torch.distributed as dist
 from typing import Optional
 
-from core.block import CommBlock
-from core.axis import TorchAxis, current_axis
-from core.utils.logging import get_logger
+from ...core.block import CommBlock
+from ...core.axis import TorchAxis, current_axis
+from ...core.utils.logging import get_logger
 
 
 logger = get_logger(__name__)
@@ -41,6 +41,8 @@ class TorchReduceScatter(_TorchCommBlock):
 
     @classmethod
     def get_dst_buf_size(cls, full_vector_size, team_size):
+        if full_vector_size % team_size:
+            raise ValueError(f"Full vector size must be divisible by team_size={team_size} for {cls.__name__}")
         return full_vector_size // team_size
 
     @staticmethod
@@ -92,7 +94,11 @@ class TorchSendRecvRing(_TorchCommBlock):
         logger.debug(f"[{dist.get_rank()}] SendRecvRing: sendto={send_rank}, recvfrom={recv_rank}, ranks={ranks}, {my_index=}, {send_index=}, {recv_index=}")
         send_op = dist.P2POp(dist.isend, src, send_rank, group=group)
         recv_op = dist.P2POp(dist.irecv, dst, recv_rank, group=group)
-        return dist.batch_isend_irecv([send_op, recv_op])
+        works = dist.batch_isend_irecv([send_op, recv_op])
+        # Keep the axis stream ordered after the P2P operations without
+        # waiting for completion on the CPU.
+        for work in works:
+            work.block_current_stream()
 
 
 class TorchAllReduce(_TorchCommBlock):
@@ -102,8 +108,9 @@ class TorchAllReduce(_TorchCommBlock):
     def collective_fnc(cls, dst_buf, src_buf, group):
         dist.all_reduce(dst_buf, group=current_axis.get().my_group)
     
-    def get_src_buf_size(self, *args, **kwargs):
-        # allreduce uses src buffer only
+    @classmethod
+    def get_src_buf_size(cls, *args, **kwargs):
+        # allreduce operates in place on the destination buffer
         return 0
     
     @staticmethod

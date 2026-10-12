@@ -5,8 +5,8 @@ import contextvars
 import os
 import torch
 
-from core.utils.distributed import nccl_torch_dist_utils
-from core.utils.logging import get_logger
+from .utils.distributed import nccl_torch_dist_utils
+from .utils.logging import get_logger
 
 
 logger = get_logger(__name__)
@@ -17,8 +17,17 @@ current_axis = contextvars.ContextVar("current_axis", default=None)
 
 @contextmanager
 def _temporary_environ(envs: dict[str, str]) -> Iterator[None]:
-    """Temporarily apply axis-specific environment variables."""
+    """Override NCCL environment during group creation, this is to allow experimental configurations and can lead to undefined behavior.
+
+    Enabled only by USE_PER_AXIS_ENV_VARS; NCCL may cache these settings,
+    so different values per axis may lead to undefined behavior.
+    """
     if not envs:
+        yield
+        return
+
+    if os.environ.get("USE_PER_AXIS_ENV_VARS", "").lower() not in {"1", "true", "yes", "on"}:
+        logger.warning("Ignoring axis environment overrides: USE_PER_AXIS_ENV_VARS is disabled")
         yield
         return
 
@@ -35,7 +44,7 @@ class Axis(ABC):
 
     dist_utils = None
 
-    def __init__(self, groups: list[list[int]], name: str = "", envs: dict[str, str] | None = None):
+    def __init__(self, groups: list[list[int]], name: str = "", envs: dict[str, str] | None = None, params: dict | None = None):
         """
         Axis is a set of teams created using the same pattern. Each axis can execute blocks independently from the other axes (i.e it is bound to a GPU single stream)
         For now, each rank must be in one group of the axis
@@ -48,8 +57,9 @@ class Axis(ABC):
         self.envs = envs or {}
 
         with _temporary_environ(self.envs):
-            self.my_group = self.dist_utils.create_axis(groups)
+            self.my_group = self.dist_utils.create_axis(groups, params=params)
 
+        self.my_group_ranks = None
         r = self.get_rank()
         for group in self.groups:
             if r in group:
@@ -62,7 +72,7 @@ class Axis(ABC):
         self.root_rank = min(self.my_group_ranks)
     
     def team_size(self):
-        return len(self.groups[0])
+        return len(self.my_group_ranks)
     
     @classmethod
     def get_rank(cls):
@@ -103,7 +113,7 @@ class Axis(ABC):
     
     @abstractmethod
     def wait_event(self, event):
-        """Wraps cudaStreamWaitEvent - Block this axis until the event is recorded by record_event"""
+        """Wait on this axis for completion of a previously recorded event"""
         pass
     
     @abstractmethod
@@ -126,9 +136,9 @@ class Axis(ABC):
 class TorchAxis(Axis):
     dist_utils = nccl_torch_dist_utils
 
-    def __init__(self, groups: list[list[int]], name: str = "", envs: dict[str, str] | None = None):
+    def __init__(self, groups: list[list[int]], name: str = "", envs: dict[str, str] | None = None, params: dict | None = None):
 
-        super().__init__(groups, name=name, envs=envs)
+        super().__init__(groups, name=name, envs=envs, params=params)
         self.stream = torch.cuda.Stream()
     
     def get_process_group(self) -> torch.distributed.ProcessGroup:
