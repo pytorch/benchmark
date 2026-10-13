@@ -19,15 +19,15 @@ current_axis = contextvars.ContextVar("current_axis", default=None)
 def _temporary_environ(envs: dict[str, str]) -> Iterator[None]:
     """Override NCCL environment during group creation, this is to allow experimental configurations and can lead to undefined behavior.
 
-    Enabled only by USE_PER_AXIS_ENV_VARS; NCCL may cache these settings,
+    Enabled only by MAESTRO_USE_PER_AXIS_ENV_VARS; NCCL may cache these settings,
     so different values per axis may lead to undefined behavior.
     """
     if not envs:
         yield
         return
 
-    if os.environ.get("USE_PER_AXIS_ENV_VARS", "").lower() not in {"1", "true", "yes", "on"}:
-        logger.warning("Ignoring axis environment overrides: USE_PER_AXIS_ENV_VARS is disabled")
+    if os.environ.get("MAESTRO_USE_PER_AXIS_ENV_VARS", "").lower() not in {"1", "true", "yes", "on"}:
+        logger.warning("Ignoring axis environment overrides: MAESTRO_USE_PER_AXIS_ENV_VARS is disabled")
         yield
         return
 

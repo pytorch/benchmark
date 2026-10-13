@@ -43,7 +43,7 @@ python -m userbenchmark.maestro.maestro list-op-presets
 
 ## Environment variables
 - `MAESTRO_LOG_LEVEL`: Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL).
-- `USE_PER_AXIS_ENV_VARS`: Per-axis `envs` overrides are disabled by default. Set `USE_PER_AXIS_ENV_VARS=1` in the launcher environment to enable them. NCCL may cache environment values, so per-axis changes can be ineffective and enabling them can cause undefined behavior. Prefer setting NCCL environment variables in the launcher for the whole process.
+- `MAESTRO_USE_PER_AXIS_ENV_VARS`: Per-axis `envs` overrides are disabled by default. Set `MAESTRO_USE_PER_AXIS_ENV_VARS=1` in the launcher environment to enable them; `true`, `yes`, and `on` also enable them, case-insensitively. NCCL may cache environment values, so per-axis changes can be ineffective and enabling them can cause undefined behavior. Prefer setting NCCL environment variables in the launcher for the whole process.
 
 ## Configuration Schema
 At the top level the YAML file supports:
@@ -77,7 +77,7 @@ See [examples](../examples/) for example configurations. The `all_reduce_sweep.y
 
 ### Axis definition
 
-Each axis may optionally set `traffic_class` (an integer from 0 to 255). It is passed directly to the NCCL process-group configuration, independently of `USE_PER_AXIS_ENV_VARS`:
+Each axis may optionally set `traffic_class` (an integer from 0 to 255). It is passed directly to the NCCL process-group configuration, independently of `MAESTRO_USE_PER_AXIS_ENV_VARS`:
 
 ```yaml
 axes:

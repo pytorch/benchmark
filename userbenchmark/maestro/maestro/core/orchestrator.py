@@ -49,7 +49,7 @@ class Orchestrator:
         register_buffers: Register pytorch buffers (PyTorch only)
         axis_params: Process-group options per axis, such as traffic_class
         axis_envs: Experimental overrides during process-group creation only,
-            enabled by USE_PER_AXIS_ENV_VARS; may lead to undefined behavior
+            enabled by MAESTRO_USE_PER_AXIS_ENV_VARS; may lead to undefined behavior
         """
         self.patterns = patterns
         self.warmup_iters = warmup_iters

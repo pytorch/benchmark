@@ -88,14 +88,14 @@ class AxisEnvironmentTest(unittest.TestCase):
 
     def test_explicit_false_ignores_overrides(self):
         for value in ("0", "false", "no", "off", "unexpected"):
-            with self.subTest(value=value), mock.patch.dict(os.environ, {ENV_KEY: "process", "USE_PER_AXIS_ENV_VARS": value}, clear=True):
+            with self.subTest(value=value), mock.patch.dict(os.environ, {ENV_KEY: "process", "MAESTRO_USE_PER_AXIS_ENV_VARS": value}, clear=True):
                 with self.assertLogs(axis_module.logger, level="WARNING"):
                     _FakeAxis([[0]], envs={ENV_KEY: "axis"})
                 self.assertEqual(_FakeAxis.dist_utils.env_at_create, "process")
 
     def test_opt_in_scopes_overrides_to_group_creation(self):
         for value in ("1", "TRUE", "yes", "On"):
-            with self.subTest(value=value), mock.patch.dict(os.environ, {ENV_KEY: "process", "USE_PER_AXIS_ENV_VARS": value}, clear=True):
+            with self.subTest(value=value), mock.patch.dict(os.environ, {ENV_KEY: "process", "MAESTRO_USE_PER_AXIS_ENV_VARS": value}, clear=True):
                 axis = _FakeAxis([[0]], envs={ENV_KEY: "axis"})
                 self.assertEqual(_FakeAxis.dist_utils.env_at_create, "axis")
                 self.assertEqual(os.environ[ENV_KEY], "process")
@@ -105,7 +105,7 @@ class AxisEnvironmentTest(unittest.TestCase):
                 self.assertIsNone(current_axis.get())
 
     def test_opt_in_restores_environment_after_failure(self):
-        with mock.patch.dict(os.environ, {ENV_KEY: "process", "USE_PER_AXIS_ENV_VARS": "1"}, clear=True):
+        with mock.patch.dict(os.environ, {ENV_KEY: "process", "MAESTRO_USE_PER_AXIS_ENV_VARS": "1"}, clear=True):
             with self.assertRaises(RuntimeError):
                 with axis_module._temporary_environ({ENV_KEY: "axis", "MAESTRO_NEW_ENV": "value"}):
                     self.assertEqual(os.environ[ENV_KEY], "axis")
