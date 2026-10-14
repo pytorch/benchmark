@@ -587,7 +587,7 @@ def main() -> None:
                 ),
                 sep="",
             )
-    except:
+    except Exception:
         pass
 
 

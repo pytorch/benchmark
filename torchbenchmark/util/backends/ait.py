@@ -9,7 +9,7 @@ try:
     from fx2ait.acc_tracer import acc_tracer
     from fx2ait.ait_module import AITModule
     from fx2ait.fx2ait import AITInterpreter
-except:
+except Exception:
     # if fx2ait is not available, skip it.
     pass
 

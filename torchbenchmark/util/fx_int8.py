@@ -84,7 +84,7 @@ def get_sub_module(model, module_dict, prefix):
                 _fuse_fx(graph_module, False)
                 setattr(model, name, module)
                 sub_module_list.append(op_name)
-            except:
+            except Exception:
                 module = _get_sub_module(module, module_dict, op_name, sub_module_list)
                 setattr(model, name, module)
         return model

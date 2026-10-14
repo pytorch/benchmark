@@ -149,7 +149,7 @@ def create_modules(module_defs, img_size, cfg):
                 module_list[j][0].bias = torch.nn.Parameter(
                     bias_, requires_grad=bias_.requires_grad
                 )
-            except:
+            except Exception:
                 print("WARNING: smart bias initialization failure.")
 
         else:

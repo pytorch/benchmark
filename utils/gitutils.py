@@ -113,7 +113,7 @@ def get_git_origin(repo: str) -> Optional[str]:
         command = "git remote get-url origin"
         out = subprocess.check_output(command, cwd=repo, shell=True).decode().strip()
         return out
-    except:
+    except Exception:
         print(f"git command {command} returns non-zero status in repo {repo}")
         return None
 

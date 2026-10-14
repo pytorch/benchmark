@@ -98,7 +98,7 @@ def parse_args(args: List[str] = None):
             return parser.parse_known_args(args)
         else:
             return parser.parse_known_args()
-    except:
+    except Exception:
         parser.print_help()
         sys.exit(0)
 

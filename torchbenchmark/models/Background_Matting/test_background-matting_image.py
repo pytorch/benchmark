@@ -225,7 +225,7 @@ for i in range(0, len(test_imgs)):
         labels = label((alpha_out > 0.05).astype(int))
         try:
             assert labels.max() != 0
-        except:
+        except Exception:
             continue
         largestCC = labels == np.argmax(np.bincount(labels.flat)[1:]) + 1
         alpha_out = alpha_out * largestCC

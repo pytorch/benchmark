@@ -85,7 +85,7 @@ def get_output_folder(parent_dir, env_name):
             folder_name = int(folder_name.split("-run")[-1])
             if folder_name > experiment_id:
                 experiment_id = folder_name
-        except:
+        except Exception:
             pass
     experiment_id += 1
 
