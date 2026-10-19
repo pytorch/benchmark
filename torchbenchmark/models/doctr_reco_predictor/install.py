@@ -18,7 +18,7 @@ def pip_install_requirements_doctr():
                 "conda-forge",
             ]
         )
-    except:
+    except Exception:
         warnings.warn(
             "The doctr_reco_predictor model requires conda binary libaries to be installed. Missing conda packages might break this model."
         )

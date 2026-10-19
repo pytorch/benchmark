@@ -14,28 +14,39 @@ jobs:
       matrix:
         include:
           - config: cpu
-            runner: linux.24xlarge
+            runner: mt-l-x86iavx512-94-192
+            gpu-flag: ''
           - config: cuda
-            runner: linux.aws.a100
+            runner: mt-l-x86iavx512-11-125-a100
+            gpu-flag: '--gpus all'
     name: Test ${{ matrix.config }}
-    env:
-      DOCKER_IMAGE: 'ghcr.io/pytorch/torchbench:latest'
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 240
+    container:
+      image: ghcr.io/pytorch/torchbench:latest
+      options: ${{ matrix.gpu-flag }}
     environment: docker-s3-upload
+    timeout-minutes: 240
     steps:
       - name: Checkout TorchBench
         uses: actions/checkout@v5
 
-      - name: Pull docker image
-        uses: pytorch/test-infra/.github/actions/pull-docker-image@main
-        with:
-          docker-image: ${{ env.DOCKER_IMAGE }}
-
-      - name: Setup CUDA GPU_FLAG for docker run
-        if: matrix.config == 'cuda'
+      - name: Point the HuggingFace cache somewhere writable
+        shell: bash
         run: |
-          echo "GPU_FLAG=--gpus all -e NVIDIA_DRIVER_CAPABILITIES=all" >> "${GITHUB_ENV}"
+          set -euo pipefail
+
+          # Ignore the shared read-only /mnt/hf_cache mount and download fresh.
+          # install.py pulls the whole hf_* model set, and most of it is the
+          # legacy un-namespaced ids (gpt2, t5-base, albert-base-v2) that cache
+          # under a different directory than their namespaced aliases, so the
+          # mount would have to be kept in step with this list in every region
+          # to be worth reading from.
+          mkdir -p "${RUNNER_TEMP}/hf_home" "${RUNNER_TEMP}/hf_datasets"
+          {
+            echo "HF_HOME=${RUNNER_TEMP}/hf_home"
+            echo "HF_HUB_CACHE=${RUNNER_TEMP}/hf_home/hub"
+            echo "HF_DATASETS_CACHE=${RUNNER_TEMP}/hf_datasets"
+          } >> "${GITHUB_ENV}"
 
       - name: Test TorchBench
         shell: bash
@@ -45,32 +56,8 @@ jobs:
         run: |
           set -eux
 
-          container_name=$(docker run \
-            ${GPU_FLAG:-} \
-            -e HUGGING_FACE_HUB_TOKEN \
-            -e TEST_CONFIG \
-            --ipc=host \
-            --tty \
-            --detach \
-            --security-opt seccomp=unconfined \
-            --shm-size=32g \
-            --cap-add=SYS_PTRACE \
-            -v "${GITHUB_WORKSPACE}:/tmp/workspace" \
-            -w /tmp/workspace \
-            "${DOCKER_IMAGE}"
-          )
-
-          # Install TorchBench
-          docker exec -t -w /tmp/workspace "${container_name}" bash -c "
-            set -eux
-            bash .ci/torchbench/install.sh
-          "
-
-          # Run TorchBench tests
-          docker exec -t -w /tmp/workspace "${container_name}" bash -c "
-            set -eux
-            bash .ci/torchbench/test.sh
-          "
+          bash .ci/torchbench/install.sh
+          bash .ci/torchbench/test.sh
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}-${{ github.event_name == 'workflow_dispatch' }}

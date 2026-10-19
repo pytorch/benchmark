@@ -737,7 +737,7 @@ def print_model_biases(model):
                     "%5.2f+/-%-5.2f" % (b[:, 5:].mean(), b[:, 5:].std()),
                 )
             )
-    except:
+    except Exception:
         pass
 
 
@@ -1362,7 +1362,7 @@ def plot_results(
                 ax[i].set_title(s[i])
                 # if i in [5, 6, 7]:  # share train and val loss y axes
                 #     ax[i].get_shared_y_axes().join(ax[i], ax[i - 5])
-        except:
+        except Exception:
             print("Warning: Plotting error for %s, skipping file" % f)
 
     ax[1].legend()

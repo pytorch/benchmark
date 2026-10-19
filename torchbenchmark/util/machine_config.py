@@ -139,7 +139,7 @@ def has_nvidia_smi():
     try:
         subprocess.check_output("nvidia-smi", shell=True)
         return True
-    except:
+    except Exception:
         return False
 
 

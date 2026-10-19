@@ -131,7 +131,7 @@ def model_info(model, verbose=False):
 
         macs, _ = profile(model, inputs=(torch.zeros(1, 3, 480, 640),), verbose=False)
         fs = ", %.1f GFLOPS" % (macs / 1e9 * 2)
-    except:
+    except Exception:
         fs = ""
 
     print(
