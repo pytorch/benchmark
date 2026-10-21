@@ -14,7 +14,9 @@ def print(*args):
     pass
 
 
-def _prefetch_loader(loader, size, fields=[], collate_fn=lambda x: x):
+def _prefetch_loader(loader, size, fields=None, collate_fn=lambda x: x):
+    if fields is None:
+        fields = []
     result = []
     for index, item in enumerate(loader):
         litem = list(item)
