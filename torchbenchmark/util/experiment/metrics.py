@@ -34,8 +34,9 @@ class TorchBenchModelMetrics:
 
 
 def maybe_synchronize(device: str):
-    if device == "cuda":
-        torch.cuda.synchronize()
+    device_module = torch.get_device_module(device)
+    if hasattr(device_module, "synchronize"):
+        device_module.synchronize()
 
 
 def get_latencies(
@@ -47,18 +48,13 @@ def get_latencies(
         func()
     result_summary = []
     for _i in range(num_iter):
-        if device == "cuda":
-            torch.cuda.synchronize()
-            # Collect time_ns() instead of time() which does not provide better precision than 1
-            # second according to https://docs.python.org/3/library/time.html#time.time.
-            t0 = time.time_ns()
-            func()
-            torch.cuda.synchronize()  # Wait for the events to be recorded!
-            t1 = time.time_ns()
-        else:
-            t0 = time.time_ns()
-            func()
-            t1 = time.time_ns()
+        maybe_synchronize(device)
+        # Collect time_ns() instead of time() which does not provide better precision than 1
+        # second according to https://docs.python.org/3/library/time.html#time.time.
+        t0 = time.time_ns()
+        func()
+        maybe_synchronize(device)
+        t1 = time.time_ns()
         result_summary.append((t1 - t0) / NANOSECONDS_PER_MILLISECONDS)
     return result_summary
 
@@ -95,12 +91,9 @@ def get_peak_memory(
         mem_model_analyzer = None
 
     def work_func():
-        if device == "cuda":
-            torch.cuda.synchronize()
-            func()
-            torch.cuda.synchronize()
-        else:
-            func()
+        maybe_synchronize(device)
+        func()
+        maybe_synchronize(device)
 
     t0 = time.time_ns()
     work_func()
@@ -131,14 +124,16 @@ def get_peak_memory(
             mem_model_analyzer.update_export_name("_peak_memory")
             mem_model_analyzer.export_all_records_to_csv()
     else:
-        if device == "cuda":
-            torch.cuda.reset_peak_memory_stats()
-            torch.cuda.empty_cache()
+        device_module = torch.get_device_module(device)
+        if hasattr(device_module, "reset_peak_memory_stats"):
+            device_module.reset_peak_memory_stats()
+        if hasattr(device_module, "empty_cache"):
+            device_module.empty_cache()
         for _ in range(num_iter):
             work_func()
-        if device == "cuda":
-            device_id = torch.cuda.current_device()
-            gpu_peak_mem = torch.cuda.max_memory_allocated() / 10**9
+        if hasattr(device_module, "max_memory_allocated"):
+            device_id = device_module.current_device()
+            gpu_peak_mem = device_module.max_memory_allocated() / 10**9
         total = psutil.virtual_memory().total
         percentage = psutil.Process(os.getpid()).memory_percent()
         cpu_peak_mem = percentage * total / 10**9
@@ -158,12 +153,9 @@ def get_model_flops(model_config: TorchBenchModelConfig) -> float:
     flop_counter = FlopCounterMode()
 
     def work_func():
-        if model.device == "cuda":
-            torch.cuda.synchronize()
-            model.invoke()
-            torch.cuda.synchronize()
-        else:
-            model.invoke()
+        maybe_synchronize(model.device)
+        model.invoke()
+        maybe_synchronize(model.device)
 
     with flop_counter:
         work_func()
