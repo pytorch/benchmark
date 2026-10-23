@@ -122,6 +122,7 @@ class PytorchBenchmarkUploader(ScribeUploader):
                 "git_commit_time",
                 "git_dirty",
                 "pytorch_version",
+                "torchvision_version",
                 "python_version",
                 "machine_kernel",
                 "machine_processor",
