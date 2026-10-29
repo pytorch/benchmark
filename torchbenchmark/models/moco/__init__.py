@@ -69,6 +69,16 @@ class Model(BenchmarkModel):
                 )
             except RuntimeError:
                 pass  # already initialized?
+        elif device == "xpu":
+            try:
+                dist.init_process_group(
+                    backend="xccl",
+                    init_method="tcp://localhost:10001",
+                    world_size=1,
+                    rank=0,
+                )
+            except RuntimeError:
+                pass  # already initialized?
         elif device == "xla":
             import torch_xla.distributed.xla_backend
 
