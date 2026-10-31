@@ -59,8 +59,11 @@ class add_ld_library_path:
         os.environ = self.os_environ.copy()
 
 
-with add_path(str(REPO_PATH)):
-    from utils import get_pkg_versions, TORCH_DEPS
+from .util.env_check import get_pkg_versions
+
+# Mirrors `utils.TORCH_DEPS`. `utils` lives at the repository root, so it is not
+# importable once torchbenchmark is installed as a package.
+TORCH_DEPS = ["numpy", "torch", "torchvision", "torchaudio"]
 
 this_dir = pathlib.Path(__file__).parent.absolute()
 model_dir = "models"
