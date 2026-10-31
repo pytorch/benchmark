@@ -4,7 +4,6 @@ Support TorchDynamo(https://github.com/facebookresearch/torchdynamo) backends
 
 import argparse
 import contextlib
-import distutils.util
 import functools
 import os
 import warnings
@@ -76,7 +75,7 @@ def parse_torchdynamo_args(dynamo_args: List[str]) -> argparse.Namespace:
     )
     parser.add_argument(
         "--dynamo_disable_optimizer_step",
-        type=distutils.util.strtobool,
+        type=torchbenchmark.str_to_bool,
         default="false",
     )
     parser.add_argument(
