@@ -162,21 +162,22 @@ class Model(BenchmarkModel):
             self.model.parameters(), lr=0.1, momentum=0.9, weight_decay=1e-4
         )
         self.criterion = nn.CrossEntropyLoss()
-        (self.images,) = self.example_inputs
 
     def get_module(self):
         return self.model, self.example_inputs
 
     def train(self):
+        (images,) = self.example_inputs
         self.model.train()
         targets = self.example_target
-        output = self.model(self.images)
+        output = self.model(images)
         loss = self.criterion(output, targets)
         loss.backward()
         self.optimizer.step()
         self.optimizer.zero_grad()
 
     def eval(self):
+        (images,) = self.example_inputs
         self.model.eval()
-        out = self.model(self.images)
+        out = self.model(images)
         return (out,)
