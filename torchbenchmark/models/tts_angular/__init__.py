@@ -34,6 +34,17 @@ class Model(BenchmarkModel):
     def set_module(self, new_model):
         self.model.model = new_model
 
+    # The inputs live in the wrapped TTSModel, which runs on them; expose them
+    # as example_inputs so that BenchmarkModel's precision and memory-layout
+    # casts reach them.
+    @property
+    def example_inputs(self):
+        return self.model.SYNTHETIC_DATA
+
+    @example_inputs.setter
+    def example_inputs(self, example_inputs):
+        self.model.SYNTHETIC_DATA = list(example_inputs)
+
     def train(self):
         # the training process is not patched to use scripted models
         self.model.train()
