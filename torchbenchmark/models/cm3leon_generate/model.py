@@ -804,7 +804,6 @@ class TransformerDecoder(nn.Module):
     ):
         super().__init__()
         self.register_buffer("version", torch.Tensor([3]))
-        self._future_mask = torch.empty(0)
 
         self.tensor_parallel_init_model_on_gpu = tensor_parallel_init_model_on_gpu
         self.megatron_init_sigma = megatron_init_sigma
@@ -1054,31 +1053,21 @@ class TransformerDecoder(nn.Module):
         return min(self.max_target_positions, self.embed_positions.max_positions)
 
     def buffered_future_mask(self, tensor, input_tokens=None) -> torch.Tensor:
-        cur_seq_len, batch_size = tensor.size(0), tensor.size(1)
+        cur_seq_len = tensor.size(0)
         max_seq_len = self.max_positions()
-        need_to_make_new_mask = (
-            self._future_mask.size(0) == 0
-            or (not self._future_mask.device == tensor.device)
-            or self._future_mask.size(1) < max_seq_len
-            or (
-                self._future_mask.size(0) != (batch_size * self.decoder_attention_heads)
-            )
-        )
-
-        # self._future_mask.device != tensor.device is not working in TorchScript. This is a workaround.
-        if need_to_make_new_mask:
-            self._future_mask = torch.triu(
-                fill_with_neg_inf(
-                    torch.zeros([max_seq_len, max_seq_len], device=tensor.device)
-                ),
-                1,
-            )
-
-        self._future_mask = self._future_mask.to(tensor)
+        # Build the mask on every call rather than caching it on the module. A
+        # mask cached in a compiled region is one of its outputs, and with CUDA
+        # graphs the next replay overwrites it while the module still holds it.
+        future_mask = torch.triu(
+            fill_with_neg_inf(
+                torch.zeros([max_seq_len, max_seq_len], device=tensor.device)
+            ),
+            1,
+        ).to(tensor)
         if self.self_attn_doc_sep != -1:
-            return self._future_mask
+            return future_mask
         else:
-            return self._future_mask[:cur_seq_len, :cur_seq_len]
+            return future_mask[:cur_seq_len, :cur_seq_len]
 
 
 def _sample_topp(temperature: float, sampling_topp: float, lprobs: torch.Tensor):
