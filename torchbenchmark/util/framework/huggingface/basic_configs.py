@@ -300,8 +300,12 @@ def download_model(model_name):
         return m.groups()[0]
 
     config_cls_name = _extract_config_cls_name(HUGGINGFACE_MODELS[model_name][2])
-    exec(f"from transformers import {config_cls_name}")
-    config = eval(HUGGINGFACE_MODELS[model_name][2])
+    # Evaluate in an explicit namespace: since Python 3.13 (PEP 667), names bound
+    # by exec() inside a function are not visible to a later eval().
+    config = eval(
+        HUGGINGFACE_MODELS[model_name][2],
+        {config_cls_name: getattr(transformers, config_cls_name)},
+    )
     model_cls = getattr(transformers, HUGGINGFACE_MODELS[model_name][3])
     kwargs = {}
     if model_name in HUGGINGFACE_MODELS_REQUIRING_TRUST_REMOTE_CODE:
