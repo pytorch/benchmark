@@ -69,10 +69,11 @@ class Model(BenchmarkModel):
 
         # Create a bunch of vectors that point along positive-x.
         # These are the dummy inputs to the model.
-        self.drs = torch.outer(r, torch.tensor([1.0, 0, 0])).to(device=device)
+        drs = torch.outer(r, torch.tensor([1.0, 0, 0])).to(device=device)
+        self.example_inputs = (drs,)
 
         # Generate some dummy targets based off of some interpretation of the lennard_jones force.
-        norms = torch.linalg.norm(self.drs, dim=1).reshape(-1, 1)
+        norms = torch.linalg.norm(drs, dim=1).reshape(-1, 1)
         self.norms = norms
         # Create training energies
         self.training_energies = torch.stack(list(map(lennard_jones, norms))).reshape(
@@ -80,7 +81,7 @@ class Model(BenchmarkModel):
         )
         # Create forces with random direction vectors
         self.training_forces = torch.stack(
-            [force * dr for force, dr in zip(map(lennard_jones_force, norms), self.drs)]
+            [force * dr for force, dr in zip(map(lennard_jones_force, norms), drs)]
         )
 
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-3)
@@ -90,16 +91,18 @@ class Model(BenchmarkModel):
 
     def train(self):
         model = self.model
+        (drs,) = self.example_inputs
         optimizer = self.optimizer
         model.train()
         optimizer.zero_grad()
-        energies, forces = make_prediction(model, self.drs)
+        energies, forces = make_prediction(model, drs)
         loss = loss_fn(self.training_energies, self.training_forces, energies, forces)
         loss.backward()
         optimizer.step()
 
     def eval(self) -> Tuple[torch.Tensor]:
         model = self.model
+        (drs,) = self.example_inputs
         model.eval()
-        out = make_prediction(model, self.drs)
+        out = make_prediction(model, drs)
         return out

@@ -176,6 +176,14 @@ class Linear(nn.Module):
             self.bias = Parameter(torch.empty(out_features, device=device, dtype=dtype))
         else:
             self.register_parameter("bias", None)
+        self.reset_parameters()
+
+    def reset_parameters(self) -> None:
+        nn.init.kaiming_uniform_(self.weight, a=math.sqrt(5))
+        if self.bias is not None:
+            fan_in, _ = nn.init._calculate_fan_in_and_fan_out(self.weight)
+            bound = 1 / math.sqrt(fan_in)
+            nn.init.uniform_(self.bias, -bound, bound)
 
     def forward(self, input: Tensor) -> Tensor:
         return F.linear(input, self.weight, self.bias)
@@ -308,6 +316,35 @@ class MultiheadAttention(nn.Module):
             self.bias_k = self.bias_v = None
 
         self.add_zero_attn = add_zero_attn
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        def _init_method_bias(weight, bias):
+            fan_in, _ = nn.init._calculate_fan_in_and_fan_out(weight)
+            bound = 1 / math.sqrt(fan_in)
+            nn.init.uniform_(bias, -bound, bound)
+
+        if self.qkv_same_dim:
+            # Empirically observed the convergence to be much better with
+            # the scaled initialization
+            nn.init.xavier_uniform_(self.k_proj.weight, gain=1 / math.sqrt(2))
+            nn.init.xavier_uniform_(self.v_proj.weight, gain=1 / math.sqrt(2))
+            nn.init.xavier_uniform_(self.q_proj.weight, gain=1 / math.sqrt(2))
+            _init_method_bias(self.k_proj.weight, self.k_proj.bias)
+            _init_method_bias(self.v_proj.weight, self.v_proj.bias)
+            _init_method_bias(self.q_proj.weight, self.q_proj.bias)
+        else:
+            nn.init.xavier_uniform_(self.k_proj.weight)
+            nn.init.xavier_uniform_(self.v_proj.weight)
+            nn.init.xavier_uniform_(self.q_proj.weight)
+
+        nn.init.xavier_uniform_(self.out_proj.weight)
+        if self.out_proj.bias is not None:
+            nn.init.constant_(self.out_proj.bias, 0.0)
+        if self.bias_k is not None:
+            nn.init.xavier_normal_(self.bias_k)
+        if self.bias_v is not None:
+            nn.init.xavier_normal_(self.bias_v)
 
     def forward(
         self,
@@ -804,7 +841,6 @@ class TransformerDecoder(nn.Module):
     ):
         super().__init__()
         self.register_buffer("version", torch.Tensor([3]))
-        self._future_mask = torch.empty(0)
 
         self.tensor_parallel_init_model_on_gpu = tensor_parallel_init_model_on_gpu
         self.megatron_init_sigma = megatron_init_sigma
@@ -1054,31 +1090,21 @@ class TransformerDecoder(nn.Module):
         return min(self.max_target_positions, self.embed_positions.max_positions)
 
     def buffered_future_mask(self, tensor, input_tokens=None) -> torch.Tensor:
-        cur_seq_len, batch_size = tensor.size(0), tensor.size(1)
+        cur_seq_len = tensor.size(0)
         max_seq_len = self.max_positions()
-        need_to_make_new_mask = (
-            self._future_mask.size(0) == 0
-            or (not self._future_mask.device == tensor.device)
-            or self._future_mask.size(1) < max_seq_len
-            or (
-                self._future_mask.size(0) != (batch_size * self.decoder_attention_heads)
-            )
-        )
-
-        # self._future_mask.device != tensor.device is not working in TorchScript. This is a workaround.
-        if need_to_make_new_mask:
-            self._future_mask = torch.triu(
-                fill_with_neg_inf(
-                    torch.zeros([max_seq_len, max_seq_len], device=tensor.device)
-                ),
-                1,
-            )
-
-        self._future_mask = self._future_mask.to(tensor)
+        # Build the mask on every call rather than caching it on the module. A
+        # mask cached in a compiled region is one of its outputs, and with CUDA
+        # graphs the next replay overwrites it while the module still holds it.
+        future_mask = torch.triu(
+            fill_with_neg_inf(
+                torch.zeros([max_seq_len, max_seq_len], device=tensor.device)
+            ),
+            1,
+        ).to(tensor)
         if self.self_attn_doc_sep != -1:
-            return self._future_mask
+            return future_mask
         else:
-            return self._future_mask[:cur_seq_len, :cur_seq_len]
+            return future_mask[:cur_seq_len, :cur_seq_len]
 
 
 def _sample_topp(temperature: float, sampling_topp: float, lprobs: torch.Tensor):

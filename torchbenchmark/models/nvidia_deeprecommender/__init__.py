@@ -50,6 +50,17 @@ class Model(BenchmarkModel):
     def set_module(self, new_model):
         self.model.rencoder = new_model
 
+    # The inputs live in the wrapped benchmark, which runs on them; expose them
+    # as example_inputs so that BenchmarkModel's precision and memory-layout
+    # casts reach them.
+    @property
+    def example_inputs(self):
+        return (self.model.toyinputs,)
+
+    @example_inputs.setter
+    def example_inputs(self, example_inputs):
+        (self.model.toyinputs,) = example_inputs
+
     def set_eval(self):
         self.eval_mode = True
 
