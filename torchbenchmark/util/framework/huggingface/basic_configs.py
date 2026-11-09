@@ -13,6 +13,24 @@ HUGGINGFACE_MODELS = {
         'AutoConfig.from_pretrained("gpt2")',
         "AutoModelForCausalLM",
     ),
+    "hf_Qwen2": (
+        512,
+        32768,
+        'AutoConfig.from_pretrained("Qwen/Qwen2-7B")',
+        "AutoModelForCausalLM"
+    ),
+    "hf_minicpm": (
+        512,
+        32768,
+        'AutoConfig.from_pretrained("openbmb/MiniCPM-o-2_6", trust_remote_code=True)',
+        "AutoModelForCausalLM"
+    ),
+    "hf_simplescaling": (
+        512,
+        1024,
+        'AutoConfig.from_pretrained("simplescaling/s1-32B")',
+        'AutoModelForCausalLM'
+    ),
     "hf_GPT2_large": (
         512,
         1024,
@@ -199,6 +217,7 @@ CPU_INPUT_SLICE = {
 HUGGINGFACE_MODELS_REQUIRING_TRUST_REMOTE_CODE = [
     "hf_Falcon_7b",
     "hf_MPT_7b_instruct",
+    "hf_minicpm",
     "phi_1_5",
     "phi_2",
     "hf_Yi",
