@@ -145,7 +145,7 @@ class Learner(nn.Module):
 
         return info
 
-    def forward(self, x, vars=None, bn_training=True):
+    def forward(self, x, vars=None, vars_bn=None, bn_training=True):
         """
         This function can be called by finetunning, however, in finetunning, we dont wish to update
         running_mean/running_var. Thought weights/bias of bn == updated, it has been separated by fast_weights.
@@ -157,8 +157,10 @@ class Learner(nn.Module):
         :return: x, loss, likelihood, kld
         """
 
-        if vars == None:
+        if vars is None:
             vars = self.vars
+        if vars_bn is None:
+            vars_bn = self.vars_bn
 
         idx = 0
         bn_idx = 0
@@ -183,10 +185,7 @@ class Learner(nn.Module):
                 # print('forward:', idx, x.norm().item())
             elif name == "bn":
                 w, b = vars[idx], vars[idx + 1]
-                running_mean, running_var = (
-                    self.vars_bn[bn_idx],
-                    self.vars_bn[bn_idx + 1],
-                )
+                running_mean, running_var = vars_bn[bn_idx], vars_bn[bn_idx + 1]
                 x = F.batch_norm(
                     x, running_mean, running_var, weight=w, bias=b, training=bn_training
                 )
@@ -219,7 +218,7 @@ class Learner(nn.Module):
 
         # make sure variable == used properly
         assert idx == len(vars)
-        assert bn_idx == len(self.vars_bn)
+        assert bn_idx == len(vars_bn)
 
         return x
 
