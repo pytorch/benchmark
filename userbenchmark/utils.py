@@ -104,7 +104,12 @@ def get_output_dir(bm_name: str) -> Path:
     IS_FBCODE = False if hasattr(torch.version, "git_version") else True
     if not IS_FBCODE:
         current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
-        target_dir = current_dir.parent.joinpath(USERBENCHMARK_OUTPUT_PREFIX, bm_name)
+        output_root = current_dir.parent
+        # When installed somewhere read-only (e.g. a system site-packages),
+        # write next to the caller instead of next to the package.
+        if not os.access(output_root, os.W_OK):
+            output_root = Path.cwd()
+        target_dir = output_root.joinpath(USERBENCHMARK_OUTPUT_PREFIX, bm_name)
     else:
         target_dir = Path(f"/tmp/{bm_name}")
     return target_dir
