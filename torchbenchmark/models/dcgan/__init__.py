@@ -193,7 +193,7 @@ class Model(BenchmarkModel):
         self.fake_label = 0.0
 
         # Random values as surrogate for batch of photos
-        self.exmaple_inputs = torch.randn(
+        self.example_inputs = torch.randn(
             self.batch_size, 3, 64, 64, device=self.device
         )
         self.model = netD
@@ -212,12 +212,12 @@ class Model(BenchmarkModel):
                 )
 
     def jit_callback(self):
-        self.model = torch.jit.trace(self.model, (self.exmaple_inputs,))
+        self.model = torch.jit.trace(self.model, (self.example_inputs,))
         if self.test == "eval" and False == self.inference_just_descriminator:
             self.netG = torch.jit.trace(self.netG, (self.eval_noise,))
 
     def get_module(self):
-        return self.model, (self.exmaple_inputs,)
+        return self.model, (self.example_inputs,)
 
     def eval(self):
         if False == self.inference_just_descriminator:
@@ -225,7 +225,7 @@ class Model(BenchmarkModel):
             self.eval_fake = self.netG(self.eval_noise)
 
         # Since we just updated D, perform another forward pass of all-fake batch through D
-        output = self.model(self.exmaple_inputs).view(-1)
+        output = self.model(self.example_inputs).view(-1)
         return (output,)
 
     def train(self):
@@ -255,7 +255,7 @@ class Model(BenchmarkModel):
         real_label = self.real_label
         fake_label = self.fake_label
 
-        benchmark_pic = self.exmaple_inputs
+        benchmark_pic = self.example_inputs
 
         # For each epoch
         for epoch in range(num_epochs):

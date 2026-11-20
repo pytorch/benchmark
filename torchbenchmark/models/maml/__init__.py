@@ -98,6 +98,9 @@ class Model(BenchmarkModel):
     def get_module(self):
         return self.module, self.example_inputs
 
+    def set_module(self, new_model):
+        self.module = new_model
+
     def eval(self) -> Tuple[torch.Tensor]:
         out = self.module(*self.example_inputs)
         return (out,)
